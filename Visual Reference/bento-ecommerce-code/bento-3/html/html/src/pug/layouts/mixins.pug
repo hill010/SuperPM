@@ -1,0 +1,12 @@
+mixin bento(image, title, content)
+    .bento
+        .bento__overlay
+            .bento__preview
+                img(src=image alt="")
+        .bento__inner
+            .bento__details
+                .bento__title=title
+                .bento__content=content
+                button.bento-button
+                    span.bento-button__title Discover
+                    span.bento-button__circle

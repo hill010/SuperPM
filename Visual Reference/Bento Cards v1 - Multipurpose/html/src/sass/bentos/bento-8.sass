@@ -1,0 +1,68 @@
+.bento-8
+    padding: 12px 16px 0
+    &__dots
+        display: flex
+        margin-bottom: 28px
+        span
+            width: 8px
+            height: 8px
+            background: rgba($bento-main, .1)
+            border-radius: 50%
+            &:not(:last-child)
+                margin-right: 6px
+    &__list
+        margin-bottom: 16px
+    &__item
+        display: flex
+        align-items: center
+        &:not(:last-child)
+            margin-bottom: 12px
+    &__item &__folder
+        width: 48px
+        margin-right: 16px
+    &__wrap
+        flex-grow: 1
+    &__line
+        width: 44px
+        height: 4px
+        margin-bottom: 10px
+        border-radius: 1px
+        background: rgba($bento-main, .25)
+    &__progress
+        display: flex
+        align-items: center
+        height: 12px
+        border-radius: 6px
+        border: 1.5px solid rgba($bento-main, .1)
+    &__box
+        height: 4px
+        border-radius: 2px
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.00) 14.51%, rgba(255, 255, 255, 0.40) 145.14%)
+    &__foot
+        position: relative
+        mask-image: linear-gradient(to bottom, black, transparent 100%)
+    &__in
+        height: 124px
+        border-radius: 16px
+        +bento-gradient
+        background: rgba(40, 40, 40, 0.70)
+        box-shadow: inset 2px 4px 16px 0px rgba(248, 248, 248, 0.06)
+        &:before
+            content: ""
+            position: absolute
+            z-index: 1
+            inset: 0
+            border: 1.5px solid rgba(248, 248, 248, 0.4)
+            border-radius: 16px
+            mask-image: linear-gradient(175deg, black, transparent 50%)
+            pointer-events: none
+            opacity: .25
+    &__foot &__folder
+        position: absolute
+        top: 32px
+        left: 50%
+        transform: translateX(-50%)
+    &__cursor
+        position: absolute
+        top: 30px
+        right: -7px

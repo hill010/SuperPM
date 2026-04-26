@@ -1,0 +1,3853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SplitMaster - 交互原型</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-base: #0a0a0a;
+            --bg-card: #111;
+            --bg-hover: #1a1a1a;
+            --bg-elevated: #222;
+            --bg-panel: #181818;
+            --bg-soft: #141414;
+            --text-primary: rgba(255,255,255,0.95);
+            --text-secondary: rgba(255,255,255,0.70);
+            --text-muted: rgba(255,255,255,0.45);
+            --accent: #6366f1;
+            --accent-soft: rgba(99, 102, 241, 0.15);
+            --border: rgba(255,255,255,0.08);
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .surface {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+
+        .page-shell {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 92px 40px 80px;
+        }
+
+        .page-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .page-title {
+            font-size: 30px;
+            line-height: 1.2;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            max-width: 660px;
+        }
+
+        /* ========== 顶部导航 ========== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.15s ease;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            border-bottom-color: var(--accent);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .balance-chip {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .balance-chip.active { display: flex; }
+
+        .user-menu-wrap {
+            position: relative;
+        }
+
+        .avatar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--accent-soft);
+            color: var(--text-primary);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 46px;
+            width: 220px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 8px;
+            z-index: 220;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+        }
+
+        .user-dropdown.active { display: block; }
+
+        .menu-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-primary:disabled, .btn-secondary:disabled, .btn-approve:disabled, .btn-revise:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .btn-secondary:hover { background: var(--bg-hover); }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .btn-icon:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* ========== 页面容器 ========== */
+        .page {
+            display: none;
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+
+        .page.active { display: block; }
+
+        /* ========== 官网首页 ========== */
+        .home-page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 48px 40px 0;
+        }
+
+        .app-home-page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 92px 40px 80px;
+        }
+
+        .app-home-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .app-home-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .marketing-hero {
+            min-height: calc(100vh - 120px);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 460px;
+            gap: 48px;
+            align-items: center;
+            padding-bottom: 48px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .hero-title {
+            font-size: 56px;
+            line-height: 1.06;
+            font-weight: 700;
+            max-width: 760px;
+            margin-bottom: 20px;
+        }
+
+        .hero-title span {
+            color: #a78bfa;
+        }
+
+        .hero-copy {
+            font-size: 17px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            max-width: 680px;
+            margin-bottom: 28px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            max-width: 640px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .hero-preview {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 18px;
+            min-height: 520px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+        }
+
+        .preview-window {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .preview-bar {
+            display: flex;
+            gap: 6px;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dot-ui {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+        }
+
+        .preview-body {
+            padding: 18px;
+        }
+
+        .mini-workflow {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .mini-step {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .mini-step strong { color: var(--text-primary); }
+
+        .marketing-section {
+            padding: 56px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            margin-bottom: 22px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .section-copy {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            max-width: 640px;
+        }
+
+        .marketing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .marketing-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .marketing-card:hover {
+            background: var(--bg-soft);
+            border-color: rgba(255,255,255,0.12);
+        }
+
+        .card-kicker {
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .marketing-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .marketing-card p, .faq-answer {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .step-list {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .step-num-large {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .faq-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .site-footer {
+            border-top: 1px solid var(--border);
+            padding: 28px 0 34px;
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links span {
+            cursor: pointer;
+        }
+
+        @media (max-width: 1000px) {
+            .marketing-hero,
+            .template-layout,
+            .asset-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .hero-title {
+                font-size: 40px;
+            }
+
+            .marketing-grid,
+            .step-list,
+            .faq-list,
+            .profile-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .hero-preview {
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .home-page,
+            .template-page,
+            .asset-page,
+            .profile-page {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .marketing-grid,
+            .step-list,
+            .faq-list,
+            .profile-grid,
+            .hero-metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .site-footer {
+                flex-direction: column;
+            }
+        }
+
+        /* Agent 团队展示区 */
+        .agent-section {
+            margin-bottom: 48px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
+        }
+
+        .agent-showcase {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            padding: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+        }
+
+        .agent-card {
+            width: 100px;
+            text-align: center;
+            padding: 20px 12px;
+            border-radius: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .agent-card:hover {
+            background: var(--bg-hover);
+        }
+
+        .agent-avatar {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 12px;
+            border-radius: 14px;
+            background: var(--accent-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .agent-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .agent-role {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* 创作入口区 */
+        .create-section {
+            margin-bottom: 48px;
+        }
+
+        .create-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .create-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .create-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #a78bfa);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .create-card:hover {
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.12);
+        }
+
+        .create-card:hover::before { opacity: 1; }
+
+        .create-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .create-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .create-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* 历史项目区 */
+        .history-section {
+            margin-top: 48px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .history-link {
+            font-size: 13px;
+            color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* ========== 模板库 ========== */
+        .template-page {
+            padding: 84px 32px 32px;
+            height: 100vh;
+        }
+
+        .template-page .page-heading,
+        .asset-page .page-heading {
+            padding: 0 8px;
+            margin-bottom: 16px;
+        }
+
+        .template-layout {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr) 360px;
+            gap: 20px;
+            height: calc(100% - 84px);
+        }
+
+        .template-sidebar, .template-detail {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .template-main {
+            min-width: 0;
+            overflow-y: auto;
+        }
+
+        .template-filter {
+            padding: 10px 12px;
+            border-radius: 9px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        .template-filter:hover, .template-filter.active {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .template-topbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .template-search {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 11px 12px;
+            outline: none;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .template-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .template-card:hover, .template-card.active {
+            background: var(--bg-hover);
+            border-color: rgba(99, 102, 241, 0.45);
+        }
+
+        .template-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .template-desc {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.55;
+            min-height: 38px;
+        }
+
+        .tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .tag {
+            padding: 4px 7px;
+            border-radius: 999px;
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .detail-section {
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+            margin-top: 14px;
+        }
+
+        .detail-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ========== 资产库页面 ========== */
+        .asset-page {
+            padding: 84px 32px 32px;
+            height: 100vh;
+        }
+
+        .asset-layout {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr) 380px;
+            gap: 20px;
+            height: calc(100% - 84px);
+        }
+
+        .asset-sidebar, .asset-detail {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .asset-main {
+            min-width: 0;
+            overflow-y: auto;
+        }
+
+        .asset-filter {
+            padding: 10px 12px;
+            border-radius: 9px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        .asset-filter:hover, .asset-filter.active {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .asset-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .asset-card:hover, .asset-card.active {
+            background: var(--bg-hover);
+            border-color: rgba(99, 102, 241, 0.45);
+        }
+
+        .asset-thumb {
+            height: 120px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--bg-elevated), var(--accent-soft));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .asset-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .asset-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ========== 用户主页 ========== */
+        .profile-page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 92px 32px 48px;
+        }
+
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .profile-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .billing-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .billing-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .project-card:hover {
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+        }
+
+        .create-card,
+        .project-card,
+        .template-card,
+        .asset-card,
+        .profile-card,
+        .deliverable-card {
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+        }
+
+        .project-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .project-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .project-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .project-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .project-meta span:last-child {
+            color: var(--text-muted);
+        }
+
+        .progress-bar {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+        }
+
+        .progress-segment {
+            flex: 1;
+            height: 3px;
+            border-radius: 2px;
+            background: var(--bg-elevated);
+        }
+
+        .progress-segment.done { background: var(--success); }
+        .progress-segment.current { background: var(--accent); }
+
+        /* ========== 工作台页 ========== */
+        .workspace-page {
+            flex-direction: column;
+            height: calc(100vh - 60px);
+        }
+
+        .workspace-page.active {
+            display: flex;
+        }
+
+        .workspace-topbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-panel);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb span { color: var(--text-muted); }
+        .breadcrumb .current { color: var(--text-primary); font-weight: 500; }
+
+        .workspace-main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            width: 280px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-section:last-child { border-bottom: none; }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .episode-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .episode-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .episode-item:hover, .episode-item.active { background: var(--bg-hover); }
+
+        .episode-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .episode-dot.done { background: var(--success); }
+
+        .episode-name {
+            font-size: 13px;
+            flex: 1;
+        }
+
+        .episode-stage {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .episode-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .episode-item:hover .episode-actions, .episode-item.active .episode-actions {
+            opacity: 1;
+        }
+
+        .episode-action {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .episode-action:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .stage-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stage-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .stage-item:hover { background: var(--bg-hover); }
+        .stage-item.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+        .stage-item.done { color: var(--success); }
+
+        .stage-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .stage-item.active .stage-num { background: var(--accent); color: white; }
+        .stage-item.done .stage-num { background: var(--success); color: white; }
+
+        .agent-chat {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .chat-message.user {
+            background: var(--accent-soft);
+            border-color: rgba(99, 102, 241, 0.35);
+            color: var(--text-primary);
+        }
+
+        .chat-agent {
+            display: block;
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            min-width: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 9px 10px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent);
+        }
+
+        /* 中间工作区 */
+        .center-workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 32px;
+            overflow-y: auto;
+            background: var(--bg-base);
+        }
+
+        .stage-header {
+            margin-bottom: 24px;
+        }
+
+        .stage-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .stage-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .input-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .script-input {
+            width: 100%;
+            min-height: 180px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.7;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .script-input::placeholder { color: var(--text-muted); }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .field-input, .field-select {
+            width: 100%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 11px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .field-input:focus, .field-select:focus {
+            border-color: var(--accent);
+        }
+
+        .mood-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .mood-tag {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .mood-tag.active, .mood-tag:hover {
+            background: var(--accent-soft);
+            border-color: rgba(99, 102, 241, 0.45);
+            color: var(--text-primary);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .upstream-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.15s ease;
+        }
+
+        .upstream-card:hover { background: var(--bg-hover); }
+
+        .upstream-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .upstream-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .upstream-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stage-kicker {
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .deliverable-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .deliverable-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .deliverable-card.confirmed {
+            border-color: rgba(34, 197, 94, 0.35);
+        }
+
+        .deliverable-card.selected {
+            border-color: rgba(99, 102, 241, 0.75);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
+        }
+
+        .deliverable-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .deliverable-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .deliverable-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .mini-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 7px;
+            padding: 6px 9px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .mini-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .timeline {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .timeline-shot {
+            min-width: 120px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .phase2-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .asset-summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .asset-pill {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .asset-count {
+            display: block;
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .version-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .version-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .version-item.active {
+            border-color: rgba(34, 197, 94, 0.45);
+        }
+
+        .version-meta {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* 右侧预览 */
+        .right-panel {
+            width: 360px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preview-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-elevated);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .preview-tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .preview-tab.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .preview-content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .preview-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .preview-empty-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .preview-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .preview-footer {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-approve {
+            flex: 1;
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-approve:hover { filter: brightness(1.1); }
+
+        .btn-revise {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-revise:hover { background: var(--bg-hover); }
+
+        /* 结果展示 */
+        .result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .result-item {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .result-item.approved {
+            border: 1px solid rgba(34, 197, 94, 0.35);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .result-num {
+            background: var(--accent);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .result-title {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .result-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .grid-result {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .grid-result.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+        .grid-cell {
+            aspect-ratio: 16/9;
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .grid-cell-num {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .grid-cell-text {
+            font-size: 10px;
+            color: var(--text-secondary);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .status-card, .audit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .status-card {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .audit-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .audit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .audit-item {
+            display: flex;
+            gap: 8px;
+        }
+
+        .audit-mark {
+            color: var(--success);
+            flex: 0 0 auto;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%) translateY(12px);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 300;
+        }
+
+        .toast.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ========== 弹窗 ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal.wide {
+            max-width: 760px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .modal-input:focus { border-color: var(--accent); }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-text {
+            background: none;
+            color: var(--text-secondary);
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-text:hover { color: var(--text-primary); }
+
+        /* ========== 设置面板 ========== */
+        .settings-panel {
+            display: none;
+            position: fixed;
+            top: 60px;
+            right: 0;
+            bottom: 0;
+            width: 360px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            z-index: 150;
+            overflow-y: auto;
+        }
+
+        .settings-panel.active { display: block; }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .settings-body {
+            padding: 20px;
+        }
+
+        .settings-section {
+            margin-bottom: 28px;
+        }
+
+        .settings-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .settings-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .settings-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .settings-input, .settings-select {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .settings-input:focus, .settings-select:focus { border-color: var(--accent); }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <!-- ========== 顶部导航 ========== -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="logo" onclick="goToPage('home')">AI SplitMaster</div>
+            <div class="nav-links">
+                <div class="nav-link active" onclick="goToPage('home')">首页</div>
+                <div class="nav-link" onclick="goToPage('app-home')">工作台</div>
+                <div class="nav-link" onclick="goToPage('template')">模板库</div>
+                <div class="nav-link" onclick="goToPage('asset')">资产库</div>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="balance-chip" id="balance-chip" onclick="goToPage('profile')">星点 <strong id="nav-balance">0</strong></div>
+            <button class="btn-secondary" id="login-entry" onclick="showModal('login-modal')">登录 / 注册</button>
+            <div class="user-menu-wrap" id="user-menu-wrap" style="display:none;">
+                <button class="avatar-btn" id="avatar-btn" onclick="toggleUserMenu()">U</button>
+                <div class="user-dropdown" id="user-dropdown">
+                    <div class="menu-item" onclick="goToPage('profile'); toggleUserMenu(false);">个人主页</div>
+                    <div class="menu-item" onclick="dailyCheckin()">每日签到</div>
+                    <div class="menu-item" onclick="showToast('会员订阅暂未开放')">升级会员</div>
+                    <div class="menu-item" onclick="showToast('星点充值暂未开放')">购买星点</div>
+                    <div class="menu-item" onclick="logout()">退出登录</div>
+                </div>
+            </div>
+            <button class="btn-icon" onclick="toggleSettings()">⚙</button>
+        </div>
+    </nav>
+
+    <!-- ========== 首页 ========== -->
+    <div class="page home-page active" id="page-home">
+        <section class="marketing-hero">
+            <div>
+                <div class="hero-badge">多 Agent 动画前期工作台</div>
+                <h1 class="hero-title">把故事快速拆成<span>可执行的动画分镜</span></h1>
+                <p class="hero-copy">AI SplitMaster 将剧本、角色、场景、宫格分镜、视频提示词和交付包串成一条完整流程。适合短剧、动画提案、MV、漫画和广告创作者快速启动项目。</p>
+                <div class="hero-actions">
+                    <button class="btn-primary" onclick="goToPage('app-home')">免费开始创作</button>
+                    <button class="btn-secondary" onclick="goToPage('template')">浏览模板库</button>
+                    <button class="btn-secondary" onclick="showToast('演示流程：基础设置 → 最终成片')">查看演示</button>
+                </div>
+                <div class="hero-metrics">
+                    <div class="metric-card"><div class="metric-value">9 阶段</div><div class="metric-label">覆盖动画前期主流程</div></div>
+                    <div class="metric-card"><div class="metric-value">多 Agent</div><div class="metric-label">编剧、角色、场景、分镜协作</div></div>
+                    <div class="metric-card"><div class="metric-value">可复用</div><div class="metric-label">沉淀角色、场景与模板</div></div>
+                </div>
+            </div>
+            <div class="hero-preview">
+                <div class="preview-window">
+                    <div class="preview-bar"><span class="dot-ui"></span><span class="dot-ui"></span><span class="dot-ui"></span></div>
+                    <div class="preview-body">
+                        <div class="section-label">工作流预览</div>
+                        <div class="mini-workflow">
+                            <div class="mini-step"><strong>剧本生成</strong><span>编剧 Agent</span></div>
+                            <div class="mini-step"><strong>角色设计</strong><span>可加入资产库</span></div>
+                            <div class="mini-step"><strong>场景设计</strong><span>多视图复用</span></div>
+                            <div class="mini-step"><strong>宫格分镜</strong><span>选择 / 插入 / 扩写</span></div>
+                            <div class="mini-step"><strong>分镜视频</strong><span>历史版本管理</span></div>
+                            <div class="mini-step"><strong>最终成片</strong><span>导出交付包</span></div>
+                        </div>
+                        <div class="grid-result">
+                            <div class="grid-cell"><span class="grid-cell-num">01</span><p class="grid-cell-text">深夜办公室建立压抑氛围</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">02</span><p class="grid-cell-text">陌生来电打破平静</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">03</span><p class="grid-cell-text">旧码头成为行动目标</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="section-head">
+                <div>
+                    <div class="section-label">核心能力</div>
+                    <div class="section-title">把前期创作流程标准化</div>
+                    <div class="section-copy">从故事到分镜交付，统一管理生成、审核、修改和资产复用。</div>
+                </div>
+            </div>
+            <div class="marketing-grid">
+                <div class="marketing-card"><div class="card-kicker">多 Agent 流程</div><h3>每一步都有协作者</h3><p>编剧、角色、场景、分镜和音效 Agent 分阶段推进创作。</p></div>
+                <div class="marketing-card"><div class="card-kicker">资产复用</div><h3>角色和场景可沉淀</h3><p>常用角色、场景、分镜和视频版本可加入资产库，后续项目直接引用。</p></div>
+                <div class="marketing-card"><div class="card-kicker">专业交付</div><h3>产出可直接对齐团队</h3><p>导出分镜表、宫格分镜、动态提示词、视频版本和交付包。</p></div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="section-head">
+                <div>
+                    <div class="section-label">适用人群</div>
+                    <div class="section-title">适合短剧、AI 创作和动画提案</div>
+                    <div class="section-copy">新手从模板开始，专业创作者深入编辑分镜，团队负责人快速检查交付结果。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="section-head">
+                <div>
+                    <div class="section-label">快速上手</div>
+                    <div class="section-title">四步开始第一个项目</div>
+                </div>
+            </div>
+            <div class="step-list">
+                <div class="marketing-card"><div class="step-num-large">1</div><h3>选择模板或新建</h3><p>从模板开始，或创建空白项目。</p></div>
+                <div class="marketing-card"><div class="step-num-large">2</div><h3>填写基础设置</h3><p>确认片长、画幅、对白语言和情绪基调。</p></div>
+                <div class="marketing-card"><div class="step-num-large">3</div><h3>生成并确认</h3><p>逐步生成剧本、角色、场景、分镜和视频。</p></div>
+                <div class="marketing-card"><div class="step-num-large">4</div><h3>导出交付</h3><p>导出分镜表、提示词、设定和预览结果。</p></div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="section-head">
+                <div>
+                    <div class="section-label">FAQ</div>
+                    <div class="section-title">常见问题</div>
+                </div>
+            </div>
+            <div class="faq-list">
+                <div class="marketing-card"><h3>没有分镜经验也能用吗？</h3><div class="faq-answer">可以。先选模板，再按阶段确认产物即可。</div></div>
+                <div class="marketing-card"><h3>角色和场景能复用吗？</h3><div class="faq-answer">可以。角色和场景都能加入资产库，后续项目直接调用。</div></div>
+                <div class="marketing-card"><h3>模板和资产有什么区别？</h3><div class="faq-answer">模板用于快速创建项目，资产用于在项目中复用角色、场景、分镜或视频版本。</div></div>
+                <div class="marketing-card"><h3>结果不满意怎么办？</h3><div class="faq-answer">可输入修改意见，也可对单个产物重新生成。</div></div>
+                <div class="marketing-card"><h3>支持哪些导出？</h3><div class="faq-answer">支持 Markdown、JSON 和分镜交付包的原型导出。</div></div>
+                <div class="marketing-card"><h3>星点是什么？</h3><div class="faq-answer">星点是生成、编辑、视频和音效等操作的消耗单位。</div></div>
+            </div>
+        </section>
+
+        <footer class="site-footer">
+            <div>AI SplitMaster © 2026</div>
+            <div class="footer-links">
+                <span onclick="showToast('用户协议已打开')">用户协议</span>
+                <span onclick="showToast('隐私政策已打开')">隐私政策</span>
+                <span onclick="showToast('联系方式：support@splitmaster.ai')">联系方式</span>
+                <span onclick="showToast('社媒入口已打开')">社媒入口</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ========== 应用工作台首页 ========== -->
+    <div class="page app-home-page" id="page-app-home">
+        <div class="page-heading">
+            <div>
+                <div class="section-label">工作台</div>
+                <div class="page-title">工作台</div>
+                <div class="page-subtitle">新建项目、继续最近项目，或从模板快速开始。</div>
+            </div>
+            <div class="action-row">
+                <button class="btn-primary" onclick="showModal('new-project-modal')">新建项目</button>
+                <button class="btn-secondary" onclick="goToPage('template')">从模板开始</button>
+            </div>
+        </div>
+
+        <section class="create-section">
+            <div class="section-label">开始创作</div>
+            <div class="create-grid">
+                <div class="create-card" onclick="showModal('new-project-modal')">
+                    <div class="create-icon">🎬</div>
+                    <div class="create-title">短剧分镜</div>
+                    <div class="create-desc">适合剧情短片和短剧单集</div>
+                </div>
+                <div class="create-card" onclick="showModal('new-project-modal')">
+                    <div class="create-icon">🎵</div>
+                    <div class="create-title">MV 分镜</div>
+                    <div class="create-desc">按歌词和情绪拆镜头</div>
+                </div>
+                <div class="create-card" onclick="showModal('new-project-modal')">
+                    <div class="create-icon">📺</div>
+                    <div class="create-title">动画分镜</div>
+                    <div class="create-desc">角色、场景、分镜一体规划</div>
+                </div>
+                <div class="create-card" onclick="showModal('new-project-modal')">
+                    <div class="create-icon">📱</div>
+                    <div class="create-title">短视频脚本</div>
+                    <div class="create-desc">适合竖屏内容和拍摄脚本</div>
+                </div>
+                <div class="create-card" onclick="showModal('new-project-modal')">
+                    <div class="create-icon">📖</div>
+                    <div class="create-title">AI漫画分镜</div>
+                    <div class="create-desc">把故事拆成条漫镜头</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <div class="history-header">
+                <div class="section-label">最近项目</div>
+                <div class="history-link">查看全部 →</div>
+            </div>
+            <div class="project-grid" id="project-grid">
+                <!-- 动态渲染 -->
+            </div>
+        </section>
+    </div>
+
+    <!-- ========== 模板库页 ========== -->
+    <div class="page template-page" id="page-template">
+        <div class="page-heading">
+            <div>
+                <div class="section-label">模板库</div>
+                <div class="page-title">模板库</div>
+                <div class="page-subtitle">选择创作场景，自动带入片长、画幅、风格和情绪基调。</div>
+            </div>
+            <button class="btn-secondary" onclick="saveCurrentAsTemplate()">保存当前项目为模板</button>
+        </div>
+        <div class="template-layout">
+            <aside class="template-sidebar">
+                <div class="section-label">模板分类</div>
+                <div id="template-filters"></div>
+            </aside>
+            <main class="template-main">
+                <div class="template-topbar">
+                    <input class="template-search" id="template-search" placeholder="搜索模板名称、风格或场景...">
+                    <select class="field-select" id="template-ratio" style="width:140px;">
+                        <option value="全部">全部画幅</option>
+                        <option value="16:9">16:9</option>
+                        <option value="9:16">9:16</option>
+                        <option value="1:1">1:1</option>
+                    </select>
+                    <select class="field-select" id="template-difficulty" style="width:140px;">
+                        <option value="全部">全部难度</option>
+                        <option value="新手">新手</option>
+                        <option value="标准">标准</option>
+                        <option value="专业">专业</option>
+                    </select>
+                </div>
+                <div class="template-grid" id="template-grid"></div>
+            </main>
+            <aside class="template-detail" id="template-detail"></aside>
+        </div>
+    </div>
+
+    <!-- ========== 资产库页 ========== -->
+    <div class="page asset-page" id="page-asset">
+        <div class="page-heading">
+            <div>
+                <div class="section-label">资产库</div>
+                <div class="page-title">资产库</div>
+                <div class="page-subtitle">集中管理角色、场景、分镜和视频版本，后续项目可直接复用。</div>
+            </div>
+            <button class="btn-secondary" onclick="openAssetLibrary()">查看当前集资产</button>
+        </div>
+        <div class="asset-layout">
+            <aside class="asset-sidebar">
+                <div class="section-label">资产分类</div>
+                <div id="asset-filters"></div>
+            </aside>
+            <main class="asset-main">
+                <div class="template-topbar">
+                    <input class="template-search" id="asset-search" placeholder="搜索资产名称、标签或来源项目...">
+                    <select class="field-select" id="asset-sort" style="width:150px;">
+                        <option value="recent">最近创建</option>
+                        <option value="usage">使用次数</option>
+                        <option value="name">名称</option>
+                    </select>
+                </div>
+                <div class="asset-grid" id="asset-grid"></div>
+            </main>
+            <aside class="asset-detail" id="asset-detail"></aside>
+        </div>
+    </div>
+
+    <!-- ========== 用户主页 ========== -->
+    <div class="page profile-page" id="page-profile">
+        <div class="page-heading">
+            <div>
+                <div class="section-label">个人中心</div>
+                <div class="page-title" id="profile-name">未登录用户</div>
+                <div class="page-subtitle" id="profile-subtitle">查看星点、会员权益、账单和账号状态。</div>
+            </div>
+            <div class="action-row">
+                <button class="btn-secondary" onclick="dailyCheckin()">每日签到</button>
+                <button class="btn-primary" onclick="showToast('星点充值暂未开放')">购买星点</button>
+            </div>
+        </div>
+        <div class="profile-grid">
+            <div class="profile-card"><div class="section-label">星点余额</div><div class="profile-value" id="profile-balance">0</div></div>
+            <div class="profile-card"><div class="section-label">会员状态</div><div class="profile-value" id="profile-plan">Free</div></div>
+            <div class="profile-card"><div class="section-label">项目数</div><div class="profile-value" id="profile-projects">0</div></div>
+            <div class="profile-card"><div class="section-label">资产数</div><div class="profile-value" id="profile-assets">0</div></div>
+        </div>
+        <div class="deliverable-grid">
+            <div class="profile-card">
+                <div class="template-title">会员权益</div>
+                <div class="detail-list">
+                    <div>月度星点：按套餐发放</div>
+                    <div>可用于生成、编辑、视频和音效</div>
+                    <div>会员周期按套餐规则计算</div>
+                </div>
+                <div class="deliverable-actions"><button class="mini-btn" onclick="showToast('会员订阅暂未开放')">升级会员</button></div>
+            </div>
+            <div class="profile-card">
+                <div class="template-title">邀请与活动</div>
+                <div class="detail-list">
+                    <div>新用户注册奖励：200 星点</div>
+                    <div>每日签到奖励：100 星点</div>
+                    <div>邀请好友奖励：50~100 星点</div>
+                </div>
+                <div class="deliverable-actions"><button class="mini-btn" onclick="showToast('邀请码入口已打开')">兑换邀请码</button></div>
+            </div>
+        </div>
+        <div class="profile-card">
+            <div class="template-title">订阅与账单</div>
+            <div class="billing-list" id="billing-list"></div>
+        </div>
+    </div>
+
+    <!-- ========== 工作台页 ========== -->
+    <div class="page workspace-page" id="page-workspace">
+        <div class="workspace-topbar">
+            <button class="btn-icon" onclick="goToPage('home')">←</button>
+            <div class="breadcrumb">
+                <span id="ws-project-name">项目名</span>
+                <span>›</span>
+                <span id="ws-episode-name">ep01</span>
+                <span>›</span>
+                <span class="current" id="ws-stage-name">节拍拆解</span>
+            </div>
+        </div>
+
+        <div class="workspace-main">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <div class="panel-section">
+                    <div class="panel-title">项目信息</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <span style="padding:4px 10px;background:var(--bg-hover);border-radius:6px;font-size:12px;">真人写实</span>
+                        <span style="padding:4px 10px;background:var(--bg-hover);border-radius:6px;font-size:12px;">短剧</span>
+                        <span style="padding:4px 10px;background:var(--bg-hover);border-radius:6px;font-size:12px;">16:9</span>
+                    </div>
+                </div>
+                <div class="panel-section">
+                    <div class="panel-title">集数</div>
+                    <div class="episode-list" id="episode-list">
+                        <!-- 动态渲染 -->
+                    </div>
+                    <button class="btn-secondary" style="width:100%;margin-top:12px;padding:10px;" onclick="showModal('new-episode-modal')">+ 添加集数</button>
+                </div>
+                <div class="panel-section">
+                    <div class="panel-title">流程阶段</div>
+                    <div class="stage-nav" id="stage-nav"></div>
+                </div>
+                <div class="panel-section">
+                    <div class="panel-title">Agent 对话</div>
+                    <div class="agent-chat" id="agent-chat"></div>
+                    <div class="chat-input-row">
+                        <input class="chat-input" id="agent-input" placeholder="输入修改需求或流程指令...">
+                        <button class="mini-btn" id="agent-send" type="button">发送</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间工作区 -->
+            <div class="center-workspace">
+                <div class="stage-content" id="stage-canvas"></div>
+            </div>
+
+            <!-- 右侧预览 -->
+            <div class="right-panel">
+                <div class="preview-header">
+                    <div class="preview-tabs">
+                        <button class="preview-tab active" data-tab="output" onclick="switchPreviewTab('output')">产出预览</button>
+                        <button class="preview-tab" data-tab="audit" onclick="switchPreviewTab('audit')">审核意见</button>
+                    </div>
+                </div>
+                <div class="preview-content">
+                    <div class="preview-empty" id="preview-empty">
+                        <div class="preview-empty-icon">🎬</div>
+                        <div>点击生成按钮开始</div>
+                    </div>
+                    <div class="preview-loading" id="preview-loading" style="display:none;">
+                        <div class="spinner"></div>
+                        <div id="loading-text">AI 思考中...</div>
+                    </div>
+                    <div class="audit-content" id="audit-content" style="display:none;"></div>
+                    <div class="result-content" id="result-current" style="display:none;"></div>
+                    <div class="result-content" id="result-1" style="display:none;">
+                        <div class="result-list">
+                            <div class="result-item"><div class="result-header"><span class="result-num">1</span><span class="result-title">开场画面</span></div><p class="result-text">展示主角在公司加班的疲惫场景</p></div>
+                            <div class="result-item"><div class="result-header"><span class="result-num">2</span><span class="result-title">主题呈现</span></div><p class="result-text">接到神秘电话，得知自己被选中</p></div>
+                            <div class="result-item"><div class="result-header"><span class="result-num">3</span><span class="result-title">铺垫</span></div><p class="result-text">回忆过去失败的创业经历</p></div>
+                            <div class="result-item"><div class="result-header"><span class="result-num">4</span><span class="result-title">催化剂</span></div><p class="result-text">神秘人送来改变命运的邀请函</p></div>
+                        </div>
+                    </div>
+                    <div class="result-content" id="result-2" style="display:none;">
+                        <div class="grid-result">
+                            <div class="grid-cell"><span class="grid-cell-num">01</span><p class="grid-cell-text">广角镜头，深夜办公室...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">02</span><p class="grid-cell-text">特写，手机亮起神秘来电...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">03</span><p class="grid-cell-text">闪回镜头，年轻的主角...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">04</span><p class="grid-cell-text">低角度镜头，信封滑入...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">05</span><p class="grid-cell-text">中景，餐桌前家人讨论...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">06</span><p class="grid-cell-text">特写，手指悬停在邀请函...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">07</span><p class="grid-cell-text">广角，推开门明亮光线...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">08</span><p class="grid-cell-text">远景，走向等候的轿车...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">09</span><p class="grid-cell-text">车尾视角，驶向城市...</p></div>
+                        </div>
+                    </div>
+                    <div class="result-content" id="result-3" style="display:none;">
+                        <div class="grid-result cols-2">
+                            <div class="grid-cell"><span class="grid-cell-num">序列1</span><p class="grid-cell-text">开场序列：从加班到神秘电话...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">序列2</span><p class="grid-cell-text">回忆序列：闪回创业失败...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">序列3</span><p class="grid-cell-text">抉择序列：争执后下决心...</p></div>
+                            <div class="grid-cell"><span class="grid-cell-num">序列4</span><p class="grid-cell-text">出发序列：推开门走向新世界...</p></div>
+                        </div>
+                    </div>
+                    <div class="result-content" id="result-4" style="display:none;">
+                        <div class="result-list">
+                            <div class="result-item"><div class="result-header"><span class="result-num">1</span><span class="result-title">开场画面</span></div><p class="result-text">Camera slowly pushes in towards the exhausted protagonist...</p></div>
+                            <div class="result-item"><div class="result-header"><span class="result-num">2</span><span class="result-title">神秘来电</span></div><p class="result-text">Quick zoom into the smartphone screen with blue glow...</p></div>
+                            <div class="result-item"><div class="result-header"><span class="result-num">3</span><span class="result-title">闪回记忆</span></div><p class="result-text">Dissolve transition to sunny outdoor scene...</p></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-footer">
+                    <button class="btn-approve" id="approve-btn" onclick="approveStage()">✓ 确认通过</button>
+                    <button class="btn-revise" onclick="showModal('revise-modal')">修改</button>
+                    <button class="btn-revise" onclick="showModal('export-modal')">导出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 设置面板 ========== -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <span class="settings-title">设置</span>
+            <button class="btn-icon" onclick="toggleSettings()">×</button>
+        </div>
+        <div class="settings-body">
+            <div class="settings-section">
+                <div class="settings-section-title">文本 AI 服务</div>
+                <div class="settings-row">
+                    <span class="settings-label">服务商</span>
+                    <select class="settings-select"><option>OpenAI</option><option>Claude</option><option>DeepSeek</option></select>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">API Key</span>
+                    <input type="password" class="settings-input" value="sk-xxxx">
+                </div>
+                <div class="status-row"><span class="status-dot"></span>已验证</div>
+            </div>
+            <div class="settings-section">
+                <div class="settings-section-title">图像 AI 服务</div>
+                <div class="settings-row">
+                    <span class="settings-label">服务商</span>
+                    <select class="settings-select"><option>DALL-E 3</option><option>通义万相</option></select>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">API Key</span>
+                    <input type="password" class="settings-input" value="sk-xxxx">
+                </div>
+                <div class="status-row"><span class="status-dot"></span>已验证</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 弹窗 ========== -->
+    <div class="modal-overlay" id="new-project-modal">
+        <div class="modal">
+            <div class="modal-title">新建项目</div>
+            <input type="text" class="modal-input" placeholder="项目名称" id="new-project-name">
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('new-project-modal')">取消</button>
+                <button class="btn-primary" onclick="createProject()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-title">登录 / 注册</div>
+            <input type="text" class="modal-input" placeholder="邮箱或手机号" id="login-account">
+            <input type="text" class="modal-input" placeholder="验证码 / 邀请码可选" id="login-code">
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('login-modal')">取消</button>
+                <button class="btn-primary" onclick="login()">进入工作台</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="new-episode-modal">
+        <div class="modal">
+            <div class="modal-title">添加集数</div>
+            <input type="text" class="modal-input" placeholder="如：ep02 - 冲突" id="new-episode-name">
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('new-episode-modal')">取消</button>
+                <button class="btn-primary" onclick="createEpisode()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="edit-episode-modal">
+        <div class="modal">
+            <div class="modal-title">编辑集数</div>
+            <input type="text" class="modal-input" placeholder="集数名称" id="edit-episode-name">
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('edit-episode-modal')">取消</button>
+                <button class="btn-primary" onclick="updateEpisode()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="revise-modal">
+        <div class="modal">
+            <div class="modal-title">修改意见</div>
+            <textarea class="modal-input" style="min-height:80px" placeholder="描述修改要求..." id="revise-input"></textarea>
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('revise-modal')">取消</button>
+                <button class="btn-primary" onclick="submitRevise()">提交</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal">
+            <div class="modal-title">导出产出</div>
+            <select class="modal-input" id="export-format">
+                <option value="markdown">Markdown 文档</option>
+                <option value="json">JSON 数据</option>
+                <option value="zip">分镜交付包</option>
+            </select>
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('export-modal')">取消</button>
+                <button class="btn-primary" onclick="exportProject()">导出</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="asset-library-modal">
+        <div class="modal wide">
+            <div class="modal-title">资产库</div>
+            <div id="asset-library-content"></div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="hideModal('asset-library-modal')">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="video-history-modal">
+        <div class="modal wide">
+            <div class="modal-title" id="video-history-title">分镜视频历史</div>
+            <div id="video-history-content"></div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="hideModal('video-history-modal')">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ========== 数据 ==========
+        const stageNames = ['', '基础设置', '剧本生成', '角色设计', '场景设计', '分镜方案', '宫格分镜', '分镜视频', '音效设计', '最终成片'];
+        const stageActions = ['', '确认设置', '生成剧本', '生成角色', '生成场景', '生成分镜方案', '生成宫格分镜', '生成分镜视频', '生成音效', '合成成片'];
+        const stageAgents = ['', 'AI 制片', '编剧 Agent', '角色设计师', '场景设计师', '分镜师', '分镜师', '动画导演', '音效总监', '剪辑导演'];
+        const moodOptions = ['悬疑', '温暖', '热血', '治愈', '压抑', '浪漫', '荒诞', '史诗', '轻喜剧', '赛博感'];
+        const templateCategories = ['全部模板', '短剧分镜', 'MV 分镜', '广告分镜', '漫剧 / 漫画', '动画提案', '教学演示', '我的模板', '最近使用'];
+        const assetCategories = ['全部资产', '角色', '场景', '分镜', '视频', '音频', '收藏', '最近使用', '回收站'];
+        const templates = [
+            { id: 1, name: '短剧逆袭剧情', category: '短剧分镜', style: '真人写实', ratio: '9:16', duration: '3 分钟', mood: ['爽感', '悬疑', '压抑'], difficulty: '新手', outputs: ['分镜表', '宫格分镜', '视频提示词', '交付包'], description: '适合逆袭、复仇、都市爽文等短剧分镜。' },
+            { id: 2, name: '都市悬疑短片', category: '短剧分镜', style: '真人写实', ratio: '16:9', duration: '60 秒', mood: ['悬疑', '压抑', '命运感'], difficulty: '标准', outputs: ['角色设定', '场景设定', '分镜视频', '最终预览'], description: '突出悬念、空间压迫和角色抉择。' },
+            { id: 3, name: 'MV 情绪分镜', category: 'MV 分镜', style: '写实 / 赛博感', ratio: '16:9', duration: '90 秒', mood: ['浪漫', '迷幻', '赛博感'], difficulty: '标准', outputs: ['情绪板', '场景段落', '镜头节奏', '视频提示词'], description: '把歌词、节奏和视觉意象拆成镜头。' },
+            { id: 4, name: '国漫剧情分镜', category: '动画提案', style: '国漫', ratio: '16:9', duration: '3 分钟', mood: ['热血', '史诗', '成长'], difficulty: '专业', outputs: ['角色小传', '场景设定', '宫格分镜', '交付包'], description: '适合奇幻、冒险、成长类动画提案。' },
+            { id: 5, name: '日漫校园片段', category: '漫剧 / 漫画', style: '日漫', ratio: '16:9', duration: '60 秒', mood: ['治愈', '青春', '温暖'], difficulty: '新手', outputs: ['剧本段落', '角色设定', '四宫格', '提示词'], description: '适合校园日常、轻剧情、漫画条漫改编。' },
+            { id: 6, name: '广告产品故事', category: '广告分镜', style: '3D CG', ratio: '1:1', duration: '30 秒', mood: ['精致', '高级', '清晰'], difficulty: '标准', outputs: ['卖点拆解', '镜头脚本', '产品场景', '导出包'], description: '适合品牌短片、产品功能演示和社媒广告。' },
+            { id: 7, name: '教学课文连环画', category: '教学演示', style: '动漫插画', ratio: '16:9', duration: '静态分镜', mood: ['温暖', '清晰', '治愈'], difficulty: '新手', outputs: ['段落拆解', '连环画分镜', '教学导出'], description: '把课文或知识点转成连环画分镜。' },
+            { id: 8, name: '角色驱动故事', category: '动画提案', style: '任意风格', ratio: '16:9', duration: '90 秒', mood: ['冒险', '成长', '史诗'], difficulty: '专业', outputs: ['角色资产', '场景资产', '分镜方案', '版本管理'], description: '先建立角色资产，再围绕角色推进故事。' }
+        ];
+        const defaultScript = '夜晚，主角林澈在办公室独自加班。手机突然亮起，一个陌生号码发来邀请：明天上午九点，到旧码头领取改变命运的机会。';
+        const outputData = {
+            1: [
+                ['影片长度', '60 秒剧情动画短片'],
+                ['画面比例', '16:9 横屏'],
+                ['对白语言', '中文对白，保留少量环境音'],
+                ['情绪基调', '悬疑、压抑、命运感']
+            ],
+            2: [
+                ['第一幕：压力', '林澈在深夜办公室加班，桌上是账单、辞职信和未读家庭消息。'],
+                ['第二幕：邀请', '陌生电话与信封同时出现，旧码头地址成为行动目标。'],
+                ['第三幕：抉择', '林澈回忆创业失败后，决定抓住这次机会。'],
+                ['第四幕：出发', '清晨，林澈走向旧码头，城市雾气中出现神秘车辆。']
+            ],
+            3: [
+                ['林澈', '32 岁，前创业者，冷静克制，黑色风衣，眼神疲惫但坚定。'],
+                ['神秘联系人', '只通过电话和信封出现，声音低沉，身份暂不揭露。'],
+                ['家人', '以未读消息和电话提示存在，制造现实压力。']
+            ],
+            4: [
+                ['深夜办公室', '冷色灯光，空旷工位，玻璃窗反射城市霓虹。'],
+                ['林澈家中', '餐桌、账单、温暖但压抑的生活痕迹。'],
+                ['旧码头', '清晨薄雾、铁门、远处黑色轿车，带有命运入口感。']
+            ],
+            5: [
+                ['镜头 01', '深夜办公室远景，建立空间和孤独感。'],
+                ['镜头 02', '手机亮起，陌生来电进入画面。'],
+                ['镜头 03', '信封滑入门缝，主角警觉。'],
+                ['镜头 04', '主角攥紧邀请函，做出决定。'],
+                ['镜头 05', '清晨旧码头，主角走向未知。']
+            ],
+            6: [
+                ['01', '广角镜头，深夜办公室只剩一盏台灯，主角伏案。'],
+                ['02', '特写，手机屏幕亮起陌生来电，蓝光映在脸上。'],
+                ['03', '近景，主角看向账单和辞职信，手指停顿。'],
+                ['04', '低角度，信封从门缝滑入，声音打破安静。'],
+                ['05', '俯拍，邀请函摊开，旧码头地址清晰可见。'],
+                ['06', '中景，主角站在窗边望向城市灯火。'],
+                ['07', '闪回，创业失败时的空荡会议室。'],
+                ['08', '特写，主角攥紧邀请函，做出决定。'],
+                ['09', '远景，清晨主角走向码头入口。']
+            ],
+            7: [
+                ['视频 01', '办公室推镜视频，已生成 v2，时长 6s。'],
+                ['视频 02', '手机特写视频，已生成 v1，时长 4s。'],
+                ['视频 03', '旧码头远景视频，已生成 v3，时长 8s。']
+            ],
+            8: [
+                ['背景音乐', '低频合成器与轻微脉冲节奏，制造悬疑压迫感。'],
+                ['环境音', '键盘声、手机震动、纸张摩擦、清晨码头风声。'],
+                ['音效点', '信封滑入、电话断线、铁门开启三个关键音效。']
+            ],
+            9: [
+                ['最终视频', '60 秒剧情动画短片合成预览已生成。'],
+                ['分镜表', '包含 5 个核心镜头、9 张宫格视图与动态提示词。'],
+                ['交付包', '角色设定、场景设定、分镜视频、音效说明可导出。']
+            ]
+        };
+        const auditData = {
+            1: ['基础信息完整。', '情绪基调将影响后续角色、场景和镜头风格。'],
+            2: ['剧本结构清晰。', '可拆为 5 个核心镜头。'],
+            3: ['角色描述可用于一致性生成。', '建议把主角加入资产库。'],
+            4: ['场景覆盖主要叙事空间。', '旧码头适合作为关键视觉锚点。'],
+            5: ['镜头数量适中。', '镜头 03 和 05 是情绪转折重点。'],
+            6: ['九宫格覆盖关键动作和空间转换。', '可继续调整顺序或扩写镜头。'],
+            7: ['视频版本可进入剪辑。', '保留历史版本便于回退。'],
+            8: ['音乐和音效与悬疑气质匹配。', '关键音效点可强化节奏。'],
+            9: ['交付内容完整。', '可导出视频预览、分镜表和交付包。']
+        };
+
+        function cloneOutput(stage) {
+            return (outputData[stage] || []).map(item => [...item]);
+        }
+
+        function makeEpisode(id, name, stage = 1, generatedStages = []) {
+            const outputs = {};
+            const approved = {};
+            const videoHistory = {};
+            const settings = {
+                duration: '60 秒',
+                ratio: '16:9',
+                dialogue: '中文对白',
+                mood: '悬疑、压抑、命运感'
+            };
+            generatedStages.forEach(s => {
+                outputs[s] = s === 1 ? buildSettingsOutput(settings) : cloneOutput(s);
+                approved[s] = s < stage;
+            });
+            return { id, name, stage, settings, script: defaultScript, outputs, approved, revisions: {}, assets: { characters: [], scenes: [] }, selectedGrid: [], videoHistory, chat: [
+                { role: 'agent', agent: 'AI 制片', text: '从基础设置开始，我会带你完成整集分镜。' }
+            ] };
+        }
+
+        function buildSettingsOutput(settings) {
+            return [
+                ['影片长度', settings.duration],
+                ['画面比例', settings.ratio],
+                ['对白语言', settings.dialogue],
+                ['情绪基调', settings.mood]
+            ];
+        }
+
+        let projects = [
+            { id: 1, name: '短剧《逆袭》', style: '真人写实', type: '短剧', ratio: '16:9', episodes: [makeEpisode(1, 'ep01', 4, [1,2,3]), makeEpisode(2, 'ep02', 2, [1]), makeEpisode(3, 'ep03', 1, [])] },
+            { id: 2, name: 'MV《夏日记忆》', style: '写实', type: 'MV', ratio: '16:9', episodes: [makeEpisode(1, 'ep01', 2, [1])] }
+        ];
+        projects[0].episodes[0].assets.characters.push({ name: '林澈', desc: '32 岁，前创业者，冷静克制，黑色风衣，眼神疲惫但坚定。', used: 2, favorite: true });
+        projects[0].episodes[0].assets.scenes.push({ name: '深夜办公室', desc: '冷色灯光，空旷工位，玻璃窗反射城市霓虹。', used: 1, favorite: false });
+
+        let currentProject = null;
+        let currentEpisode = null;
+        let currentStage = 1;
+        let editingEpisodeId = null;
+        let activeVideoIndex = null;
+        let selectedTemplateId = 1;
+        let templateCategory = '全部模板';
+        let assetCategory = '全部资产';
+        let selectedAssetId = null;
+        let currentUser = null;
+        let previewTab = 'output';
+        let toastTimer = null;
+
+        // ========== 页面切换 ==========
+        function goToPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const target = page === 'template' ? '模板库' : (page === 'asset' ? '资产库' : (page === 'home' ? '首页' : '工作台'));
+                link.classList.toggle('active', link.textContent.trim() === target);
+            });
+
+            if (page === 'home') renderProjects();
+            if (page === 'app-home') renderProjects();
+            if (page === 'template') renderTemplateLibrary();
+            if (page === 'asset') renderAssetLibraryPage();
+            if (page === 'profile') renderProfile();
+            if (page === 'workspace') renderWorkspace();
+        }
+
+        // ========== 首页渲染 ==========
+        function renderProjects() {
+            const grid = document.getElementById('project-grid');
+            if (!grid) return;
+            grid.innerHTML = projects.map(p => {
+                const progress = Math.max(...p.episodes.map(ep => ep.stage));
+                const bars = stageNames.slice(1).map((_, idx) => {
+                    const s = idx + 1;
+                    const cls = s < progress ? 'done' : (s === progress && progress < stageNames.length - 1 ? 'current' : (progress === stageNames.length - 1 ? 'done' : ''));
+                    return `<span class="progress-segment ${cls}"></span>`;
+                }).join('');
+                const completed = p.episodes.filter(ep => ep.stage === stageNames.length - 1 && ep.approved[stageNames.length - 1]).length;
+                return `
+                    <div class="project-card" onclick="openProject(${p.id})">
+                        <div class="project-card-header">
+                            <span class="project-name">${p.name}</span>
+                            <span class="project-time">${p.episodes.length}集</span>
+                        </div>
+                        <div class="progress-bar">${bars}</div>
+                        <div class="project-meta"><span>${p.style}</span><span>${completed}/${p.episodes.length} 已完成 · ${stageNames[progress]}</span></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openProject(id) {
+            currentProject = projects.find(p => p.id === id);
+            currentEpisode = currentProject.episodes[0];
+            currentStage = currentEpisode.stage;
+            document.getElementById('ws-project-name').textContent = currentProject.name;
+            goToPage('workspace');
+        }
+
+        function createProject() {
+            const name = document.getElementById('new-project-name').value.trim();
+            if (!name) return;
+            const newP = { id: Date.now(), name, style: '真人写实', type: '短剧', ratio: '16:9', episodes: [makeEpisode(1, 'ep01', 1, [])] };
+            projects.unshift(newP);
+            hideModal('new-project-modal');
+            document.getElementById('new-project-name').value = '';
+            openProject(newP.id);
+            showToast('项目已创建，进入 ep01 流程');
+        }
+
+        function renderTemplateLibrary() {
+            document.getElementById('template-filters').innerHTML = templateCategories.map(category => `
+                <div class="template-filter ${templateCategory === category ? 'active' : ''}" onclick="selectTemplateCategory('${category}')">${category}</div>
+            `).join('');
+
+            const keyword = document.getElementById('template-search')?.value.trim().toLowerCase() || '';
+            const ratio = document.getElementById('template-ratio')?.value || '全部';
+            const difficulty = document.getElementById('template-difficulty')?.value || '全部';
+            const filtered = templates.filter(t => {
+                const matchCategory = templateCategory === '全部模板' || templateCategory === '最近使用' || templateCategory === t.category;
+                const matchRatio = ratio === '全部' || t.ratio === ratio;
+                const matchDifficulty = difficulty === '全部' || t.difficulty === difficulty;
+                const searchText = `${t.name} ${t.category} ${t.style} ${t.description} ${t.mood.join(' ')}`.toLowerCase();
+                return matchCategory && matchRatio && matchDifficulty && (!keyword || searchText.includes(keyword));
+            });
+
+            if (!filtered.some(t => t.id === selectedTemplateId) && filtered[0]) {
+                selectedTemplateId = filtered[0].id;
+            }
+
+            document.getElementById('template-grid').innerHTML = filtered.map(t => `
+                <div class="template-card ${selectedTemplateId === t.id ? 'active' : ''}" onclick="selectTemplate(${t.id})">
+                    <div class="template-title">${t.name}</div>
+                    <div class="template-desc">${t.description}</div>
+                    <div class="tag-row">
+                        <span class="tag">${t.category}</span>
+                        <span class="tag">${t.style}</span>
+                        <span class="tag">${t.ratio}</span>
+                        <span class="tag">${t.difficulty}</span>
+                    </div>
+                </div>
+            `).join('') || '<div class="status-card">没有匹配的模板。</div>';
+
+            renderTemplateDetail();
+        }
+
+        function selectTemplateCategory(category) {
+            templateCategory = category;
+            renderTemplateLibrary();
+        }
+
+        function selectTemplate(id) {
+            selectedTemplateId = id;
+            renderTemplateLibrary();
+        }
+
+        function renderTemplateDetail() {
+            const template = templates.find(t => t.id === selectedTemplateId) || templates[0];
+            document.getElementById('template-detail').innerHTML = `
+                <div class="section-label">模板详情</div>
+                <div class="template-title">${template.name}</div>
+                <div class="template-desc">${template.description}</div>
+                <div class="tag-row">
+                    ${template.mood.map(m => `<span class="tag">${m}</span>`).join('')}
+                </div>
+                <div class="detail-section">
+                    <div class="section-label">默认设置</div>
+                    <div class="detail-list">
+                        <div>目标媒介：${template.category}</div>
+                        <div>视觉风格：${template.style}</div>
+                        <div>画面比例：${template.ratio}</div>
+                        <div>影片片长：${template.duration}</div>
+                        <div>难度：${template.difficulty}</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="section-label">推荐产出</div>
+                    <div class="detail-list">${template.outputs.map(o => `<div>• ${o}</div>`).join('')}</div>
+                </div>
+                <div class="detail-section">
+                    <button class="btn-primary" style="width:100%;margin-bottom:10px;" onclick="createProjectFromTemplate(${template.id})">用此模板新建项目</button>
+                    <button class="btn-secondary" style="width:100%;" onclick="saveCurrentAsTemplate()">保存当前项目为模板</button>
+                </div>
+            `;
+        }
+
+        function createProjectFromTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            if (!template) return;
+            const episode = makeEpisode(1, 'ep01', 1, []);
+            episode.settings = {
+                duration: template.duration,
+                ratio: template.ratio,
+                dialogue: '中文对白',
+                mood: template.mood.join('、')
+            };
+            episode.outputs[1] = buildSettingsOutput(episode.settings);
+            const newP = {
+                id: Date.now(),
+                name: `${template.name}项目`,
+                style: template.style,
+                type: template.category,
+                ratio: template.ratio,
+                episodes: [episode]
+            };
+            projects.unshift(newP);
+            openProject(newP.id);
+            showToast('已用模板创建项目');
+        }
+
+        function saveCurrentAsTemplate() {
+            if (!currentProject || !currentEpisode) {
+                showToast('请先打开一个项目');
+                return;
+            }
+            showToast('已保存为我的模板');
+        }
+
+        function collectAssets() {
+            const assets = [];
+            projects.forEach(project => {
+                project.episodes.forEach(episode => {
+                    episode.assets.characters.forEach((asset, index) => assets.push({
+                        id: `${project.id}-${episode.id}-character-${index}`,
+                        type: '角色',
+                        icon: '人',
+                        project,
+                        episode,
+                        name: asset.name,
+                        desc: asset.desc,
+                        source: `${project.name} / ${episode.name}`,
+                        usageCount: asset.used || 0,
+                        favorite: Boolean(asset.favorite),
+                        raw: asset
+                    }));
+                    episode.assets.scenes.forEach((asset, index) => assets.push({
+                        id: `${project.id}-${episode.id}-scene-${index}`,
+                        type: '场景',
+                        icon: '景',
+                        project,
+                        episode,
+                        name: asset.name,
+                        desc: asset.desc,
+                        source: `${project.name} / ${episode.name}`,
+                        usageCount: asset.used || 0,
+                        favorite: Boolean(asset.favorite),
+                        raw: asset
+                    }));
+                    (episode.outputs[5] || []).forEach((shot, index) => assets.push({
+                        id: `${project.id}-${episode.id}-shot-${index}`,
+                        type: '分镜',
+                        icon: '镜',
+                        project,
+                        episode,
+                        name: shot[0],
+                        desc: shot[1],
+                        source: `${project.name} / ${episode.name}`,
+                        usageCount: 0,
+                        favorite: false,
+                        raw: { name: shot[0], desc: shot[1] }
+                    }));
+                    Object.keys(episode.videoHistory || {}).forEach(index => {
+                        const active = episode.videoHistory[index].find(v => v.active) || episode.videoHistory[index][0];
+                        const shot = episode.outputs[7]?.[index] || [`视频 ${Number(index) + 1}`, '分镜视频资产'];
+                        assets.push({
+                            id: `${project.id}-${episode.id}-video-${index}`,
+                            type: '视频',
+                            icon: '影',
+                            project,
+                            episode,
+                            name: shot[0],
+                            desc: active?.desc || shot[1],
+                            source: `${project.name} / ${episode.name}`,
+                            usageCount: episode.videoHistory[index].length,
+                            favorite: false,
+                            raw: { name: shot[0], desc: active?.desc || shot[1] }
+                        });
+                    });
+                });
+            });
+            return assets;
+        }
+
+        function renderAssetLibraryPage() {
+            const assets = collectAssets();
+            document.getElementById('asset-filters').innerHTML = assetCategories.map(category => `
+                <div class="asset-filter ${assetCategory === category ? 'active' : ''}" onclick="selectAssetCategory('${category}')">${category}</div>
+            `).join('');
+
+            const keyword = document.getElementById('asset-search')?.value.trim().toLowerCase() || '';
+            const sort = document.getElementById('asset-sort')?.value || 'recent';
+            let filtered = assets.filter(asset => {
+                const matchCategory = assetCategory === '全部资产' || assetCategory === '最近使用' || assetCategory === asset.type || (assetCategory === '收藏' && asset.favorite);
+                const searchText = `${asset.name} ${asset.type} ${asset.desc} ${asset.source}`.toLowerCase();
+                return matchCategory && (!keyword || searchText.includes(keyword));
+            });
+
+            if (sort === 'usage') filtered.sort((a, b) => b.usageCount - a.usageCount);
+            if (sort === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+            if (!filtered.some(asset => asset.id === selectedAssetId)) {
+                selectedAssetId = filtered[0]?.id || null;
+            }
+
+            document.getElementById('asset-grid').innerHTML = filtered.map(asset => `
+                <div class="asset-card ${asset.id === selectedAssetId ? 'active' : ''}" onclick="selectAsset('${asset.id}')">
+                    <div class="asset-thumb">${asset.icon}</div>
+                    <div class="asset-title">${asset.name}</div>
+                    <div class="asset-meta">${asset.type} · ${asset.source}<br>使用 ${asset.usageCount} 次</div>
+                    <div class="tag-row">
+                        <span class="tag">${asset.type}</span>
+                        ${asset.favorite ? '<span class="tag">收藏</span>' : ''}
+                    </div>
+                </div>
+            `).join('') || '<div class="status-card">暂无匹配资产。可先在角色、场景或分镜视频阶段加入资产。</div>';
+
+            renderAssetDetail(filtered);
+        }
+
+        function selectAssetCategory(category) {
+            assetCategory = category;
+            renderAssetLibraryPage();
+        }
+
+        function selectAsset(id) {
+            selectedAssetId = id;
+            renderAssetLibraryPage();
+        }
+
+        function renderAssetDetail(visibleAssets = collectAssets()) {
+            const asset = collectAssets().find(a => a.id === selectedAssetId) || visibleAssets[0];
+            if (!asset) {
+                document.getElementById('asset-detail').innerHTML = '<div class="status-card">选择一个资产查看详情。</div>';
+                return;
+            }
+            document.getElementById('asset-detail').innerHTML = `
+                <div class="section-label">资产详情</div>
+                <div class="asset-thumb">${asset.icon}</div>
+                <div class="template-title">${asset.name}</div>
+                <div class="template-desc">${asset.desc}</div>
+                <div class="tag-row">
+                    <span class="tag">${asset.type}</span>
+                    <span class="tag">${asset.source}</span>
+                </div>
+                <div class="detail-section">
+                    <div class="section-label">使用信息</div>
+                    <div class="detail-list">
+                        <div>来源项目：${asset.project.name}</div>
+                        <div>来源集数：${asset.episode.name}</div>
+                        <div>使用次数：${asset.usageCount}</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <button class="btn-primary" style="width:100%;margin-bottom:10px;" onclick="useSelectedAsset()">加入当前项目</button>
+                    <button class="btn-secondary" style="width:100%;margin-bottom:10px;" onclick="bindSelectedAsset()">绑定到当前分镜</button>
+                    <button class="btn-secondary" style="width:100%;margin-bottom:10px;" onclick="toggleSelectedAssetFavorite()">收藏 / 取消收藏</button>
+                    <button class="btn-secondary" style="width:100%;" onclick="deleteSelectedAsset()">删除</button>
+                </div>
+            `;
+        }
+
+        function getSelectedAsset() {
+            return collectAssets().find(asset => asset.id === selectedAssetId);
+        }
+
+        function useSelectedAsset() {
+            const asset = getSelectedAsset();
+            if (!asset) return;
+            if (!currentProject || !currentEpisode) {
+                currentProject = asset.project;
+                currentEpisode = asset.episode;
+                currentStage = asset.type === '角色' ? 3 : (asset.type === '场景' ? 4 : 5);
+            }
+            asset.raw.used = (asset.raw.used || 0) + 1;
+            currentEpisode.chat.push({ role: 'agent', agent: 'AI 制片', text: `已将资产「${asset.name}」加入当前项目上下文。` });
+            renderAssetLibraryPage();
+            showToast('资产已加入当前项目');
+        }
+
+        function bindSelectedAsset() {
+            const asset = getSelectedAsset();
+            if (!asset) return;
+            if (!currentEpisode || !currentEpisode.outputs[5]) {
+                showToast('请先生成分镜方案');
+                return;
+            }
+            currentEpisode.outputs[5][0][1] = `${currentEpisode.outputs[5][0][1]}（绑定资产：${asset.name}）`;
+            asset.raw.used = (asset.raw.used || 0) + 1;
+            renderAssetLibraryPage();
+            showToast('已绑定到当前分镜');
+        }
+
+        function toggleSelectedAssetFavorite() {
+            const asset = getSelectedAsset();
+            if (!asset) return;
+            asset.raw.favorite = !asset.raw.favorite;
+            renderAssetLibraryPage();
+            showToast(asset.raw.favorite ? '已收藏资产' : '已取消收藏');
+        }
+
+        function deleteSelectedAsset() {
+            const asset = getSelectedAsset();
+            if (!asset) return;
+            if (asset.type === '角色') {
+                asset.episode.assets.characters = asset.episode.assets.characters.filter(a => a !== asset.raw);
+            } else if (asset.type === '场景') {
+                asset.episode.assets.scenes = asset.episode.assets.scenes.filter(a => a !== asset.raw);
+            } else {
+                showToast('该类型暂只支持从来源阶段管理');
+                return;
+            }
+            selectedAssetId = null;
+            renderAssetLibraryPage();
+            showToast('资产已删除');
+        }
+
+        function login() {
+            const account = document.getElementById('login-account').value.trim() || 'creator@splitmaster.ai';
+            currentUser = {
+                name: account.includes('@') ? account.split('@')[0] : '创作者',
+                account,
+                plan: 'Free',
+                balance: 200,
+                checkedIn: false,
+                bills: [
+                    ['注册奖励', '+200 星点', '有效期 30 天'],
+                    ['系统赠送', '+50 星点', '原型体验奖励']
+                ]
+            };
+            hideModal('login-modal');
+            document.getElementById('login-account').value = '';
+            document.getElementById('login-code').value = '';
+            renderUserChrome();
+            goToPage('profile');
+            showToast('登录成功，已发放注册奖励');
+        }
+
+        function logout() {
+            currentUser = null;
+            renderUserChrome();
+            goToPage('home');
+            showToast('已退出登录');
+        }
+
+        function renderUserChrome() {
+            const loggedIn = Boolean(currentUser);
+            document.getElementById('login-entry').style.display = loggedIn ? 'none' : 'block';
+            document.getElementById('user-menu-wrap').style.display = loggedIn ? 'block' : 'none';
+            document.getElementById('balance-chip').classList.toggle('active', loggedIn);
+            if (loggedIn) {
+                document.getElementById('nav-balance').textContent = currentUser.balance;
+                document.getElementById('avatar-btn').textContent = currentUser.name.slice(0, 1).toUpperCase();
+            }
+        }
+
+        function toggleUserMenu(force) {
+            const menu = document.getElementById('user-dropdown');
+            if (typeof force === 'boolean') {
+                menu.classList.toggle('active', force);
+            } else {
+                menu.classList.toggle('active');
+            }
+        }
+
+        function dailyCheckin() {
+            if (!currentUser) {
+                showModal('login-modal');
+                return;
+            }
+            if (currentUser.checkedIn) {
+                showToast('今天已经签到过了');
+                return;
+            }
+            currentUser.checkedIn = true;
+            currentUser.balance += 100;
+            currentUser.bills.unshift(['每日签到', '+100 星点', '有效期 7 天']);
+            renderUserChrome();
+            renderProfile();
+            showToast('签到成功，获得 100 星点');
+        }
+
+        function renderProfile() {
+            if (!currentUser) {
+                document.getElementById('profile-name').textContent = '未登录用户';
+                document.getElementById('profile-subtitle').textContent = '登录后可查看星点余额、会员权益、账单和资产统计。';
+                document.getElementById('profile-balance').textContent = '0';
+                document.getElementById('profile-plan').textContent = 'Free';
+                document.getElementById('profile-projects').textContent = projects.length;
+                document.getElementById('profile-assets').textContent = collectAssets().length;
+                document.getElementById('billing-list').innerHTML = '<div class="billing-row"><span>暂无账单</span><span>请先登录</span></div>';
+                return;
+            }
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('profile-subtitle').textContent = currentUser.account;
+            document.getElementById('profile-balance').textContent = currentUser.balance;
+            document.getElementById('profile-plan').textContent = currentUser.plan;
+            document.getElementById('profile-projects').textContent = projects.length;
+            document.getElementById('profile-assets').textContent = collectAssets().length;
+            document.getElementById('billing-list').innerHTML = currentUser.bills.map(row => `
+                <div class="billing-row"><span>${row[0]}</span><span>${row[1]}</span><span>${row[2]}</span></div>
+            `).join('');
+        }
+
+        // ========== 工作区渲染 ==========
+        function renderWorkspace() {
+            // 渲染集数列表
+            const epList = document.getElementById('episode-list');
+            epList.innerHTML = currentProject.episodes.map(ep => {
+                const dotClass = ep.stage === 4 && ep.approved[4] ? 'done' : '';
+                const activeClass = ep.id === currentEpisode.id ? 'active' : '';
+                const stateText = ep.stage === stageNames.length - 1 && ep.approved[stageNames.length - 1] ? '已完成' : stageNames[ep.stage];
+                return `
+                    <div class="episode-item ${activeClass}" onclick="selectEpisode(${ep.id})">
+                        <span class="episode-dot ${dotClass}"></span>
+                        <span class="episode-name">${ep.name}</span>
+                        <span class="episode-stage">${stateText}</span>
+                        <span class="episode-actions">
+                            <button class="episode-action" title="编辑" onclick="openEditEpisode(event, ${ep.id})">✎</button>
+                            <button class="episode-action" title="删除" onclick="deleteEpisode(event, ${ep.id})">×</button>
+                        </span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('stage-nav').innerHTML = stageNames.slice(1).map((name, index) => {
+                const stage = index + 1;
+                return `
+                    <div class="stage-item" data-stage="${stage}" onclick="goToStage(${stage})">
+                        <span class="stage-num">${stage}</span>
+                        <span>${name}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // 更新面包屑
+            document.getElementById('ws-episode-name').textContent = currentEpisode.name;
+            document.getElementById('ws-stage-name').textContent = stageNames[currentStage];
+
+            // 更新阶段导航
+            document.querySelectorAll('.stage-item').forEach(item => {
+                const s = parseInt(item.dataset.stage);
+                item.classList.remove('active', 'done');
+                if (s === currentStage) item.classList.add('active');
+                if (currentEpisode.approved[s]) item.classList.add('done');
+            });
+
+            renderCanvas();
+            renderChat();
+            renderPreview();
+        }
+
+        function selectEpisode(id) {
+            currentEpisode = currentProject.episodes.find(e => e.id === id);
+            currentStage = currentEpisode.stage;
+            renderWorkspace();
+        }
+
+        function goToStage(s) {
+            if (s > 1 && !currentEpisode.outputs[s - 1]) {
+                showToast(`请先完成${stageNames[s - 1]}`);
+                return;
+            }
+            currentStage = s;
+            renderWorkspace();
+        }
+
+        function createEpisode() {
+            const name = document.getElementById('new-episode-name').value.trim();
+            if (!name) return;
+            const episode = makeEpisode(Date.now(), name, 1, []);
+            currentProject.episodes.push(episode);
+            currentEpisode = episode;
+            currentStage = 1;
+            hideModal('new-episode-modal');
+            document.getElementById('new-episode-name').value = '';
+            renderWorkspace();
+            showToast('已添加新集数');
+        }
+
+        function openEditEpisode(event, id) {
+            event.stopPropagation();
+            const episode = currentProject.episodes.find(e => e.id === id);
+            if (!episode) return;
+            editingEpisodeId = id;
+            document.getElementById('edit-episode-name').value = episode.name;
+            showModal('edit-episode-modal');
+        }
+
+        function updateEpisode() {
+            const name = document.getElementById('edit-episode-name').value.trim();
+            if (!name || editingEpisodeId === null) return;
+            const episode = currentProject.episodes.find(e => e.id === editingEpisodeId);
+            if (!episode) return;
+            episode.name = name;
+            if (currentEpisode.id === editingEpisodeId) {
+                currentEpisode = episode;
+            }
+            editingEpisodeId = null;
+            hideModal('edit-episode-modal');
+            document.getElementById('edit-episode-name').value = '';
+            renderWorkspace();
+            showToast('集数名称已更新');
+        }
+
+        function deleteEpisode(event, id) {
+            event.stopPropagation();
+            if (currentProject.episodes.length <= 1) {
+                showToast('至少保留一集');
+                return;
+            }
+            const index = currentProject.episodes.findIndex(e => e.id === id);
+            if (index === -1) return;
+            const removed = currentProject.episodes[index];
+            currentProject.episodes.splice(index, 1);
+            if (currentEpisode.id === id) {
+                currentEpisode = currentProject.episodes[Math.max(0, index - 1)] || currentProject.episodes[0];
+                currentStage = currentEpisode.stage;
+            }
+            renderWorkspace();
+            showToast(`已删除 ${removed.name}`);
+        }
+
+        // ========== 生成流程 ==========
+        function startGenerate() {
+            if (currentStage > 1 && !currentEpisode.outputs[currentStage - 1]) {
+                showToast(`缺少上游输入：${stageNames[currentStage - 1]}`);
+                return;
+            }
+            if (currentStage === 1) {
+                saveEpisodeSettings();
+                return;
+            }
+            if (currentStage === 2) {
+                const script = document.getElementById('story-input')?.value.trim();
+                currentEpisode.script = script || defaultScript;
+            }
+            previewTab = 'output';
+            updatePreviewTabs();
+            document.getElementById('preview-empty').style.display = 'none';
+            document.getElementById('audit-content').style.display = 'none';
+            document.querySelectorAll('.result-content').forEach(el => el.style.display = 'none');
+            document.getElementById('preview-loading').style.display = 'flex';
+            setFooterEnabled(false);
+
+            const texts = ['AI 思考中...', 'Agent 协作生成中...', 'AI 导演审核中...'];
+            let i = 0;
+            const interval = setInterval(() => {
+                document.getElementById('loading-text').textContent = texts[i % texts.length];
+                i++;
+            }, 1000);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                document.getElementById('preview-loading').style.display = 'none';
+                currentEpisode.outputs[currentStage] = cloneOutput(currentStage);
+                if (currentStage === 7) initVideoHistory();
+                currentEpisode.approved[currentStage] = false;
+                currentEpisode.chat.push({ role: 'agent', agent: stageAgents[currentStage], text: `${stageNames[currentStage]}已完成，请检查并确认。` });
+                renderCanvas();
+                renderChat();
+                renderPreview();
+                showToast(`${stageNames[currentStage]}已生成`);
+            }, 1200);
+        }
+
+        function renderCanvas() {
+            const hasOutput = Boolean(currentEpisode.outputs[currentStage]);
+            const upstream = currentStage > 1
+                ? `<div class="upstream-card"><div class="upstream-info"><span class="upstream-label">上游输入</span><span class="upstream-value">${currentEpisode.outputs[currentStage - 1] ? stageNames[currentStage - 1] + '（已确认/可引用）' : stageNames[currentStage - 1] + '（待生成）'}</span></div><span style="color:var(--text-muted)">▼</span></div>`
+                : '';
+            const input = currentStage === 2 ? `
+                <div class="input-card">
+                    <div class="input-label">故事/剧本输入</div>
+                    <textarea class="script-input" id="story-input" placeholder="输入故事梗概、镜头想法或风格要求...">${currentEpisode.script || ''}</textarea>
+                </div>
+            ` : '';
+            const settingsForm = currentStage === 1 ? buildSettingsForm() : '';
+            document.getElementById('stage-canvas').innerHTML = `
+                <div class="canvas-toolbar">
+                    <div>
+                        <div class="stage-kicker">${stageAgents[currentStage]}</div>
+                        <h2 class="stage-title">${stageNames[currentStage]}</h2>
+                        <p class="stage-desc">${getStageDesc(currentStage)}</p>
+                    </div>
+                    <button class="btn-primary" onclick="startGenerate()">${hasOutput ? '重新' + stageActions[currentStage].replace('生成', '生成') : stageActions[currentStage]}</button>
+                </div>
+                ${upstream}
+                ${settingsForm}
+                ${input}
+                ${hasOutput ? buildDeliverables(currentStage) : buildStageEmpty(currentStage)}
+            `;
+        }
+
+        function buildSettingsForm() {
+            const settings = currentEpisode.settings;
+            return `
+                <div class="input-card">
+                    <div class="input-label">影片基础设置</div>
+                    <div class="settings-grid">
+                        <div class="field-group">
+                            <label class="field-label" for="setting-duration">影片片长</label>
+                            <select class="field-select" id="setting-duration">
+                                ${['30 秒', '60 秒', '90 秒', '3 分钟'].map(v => `<option ${settings.duration === v ? 'selected' : ''}>${v}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="setting-ratio">画面比例</label>
+                            <select class="field-select" id="setting-ratio">
+                                ${['16:9', '9:16', '1:1', '4:3'].map(v => `<option ${settings.ratio === v ? 'selected' : ''}>${v}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="setting-dialogue">对白语言</label>
+                            <select class="field-select" id="setting-dialogue">
+                                ${['中文对白', '英文对白', '无对白', '中英双语'].map(v => `<option ${settings.dialogue === v ? 'selected' : ''}>${v}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="setting-mood">情绪基调</label>
+                            <input class="field-input" id="setting-mood" value="${settings.mood}" placeholder="如：悬疑、温暖、热血、治愈">
+                            <div class="mood-tags">
+                                ${moodOptions.map(mood => `<button class="mood-tag ${settings.mood.includes(mood) ? 'active' : ''}" onclick="toggleMoodTag(event, '${mood}')">${mood}</button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-secondary" onclick="resetEpisodeSettings()">撤销修改</button>
+                        <button class="btn-primary" onclick="saveEpisodeSettings()">确认设置</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function resetEpisodeSettings() {
+            renderCanvas();
+            showToast('已撤销未确认的修改');
+        }
+
+        function toggleMoodTag(event, mood) {
+            event.preventDefault();
+            const input = document.getElementById('setting-mood');
+            const values = input.value.split(/[、,，]/).map(v => v.trim()).filter(Boolean);
+            const next = values.includes(mood) ? values.filter(v => v !== mood) : [...values, mood];
+            input.value = next.join('、');
+            renderMoodTags(next);
+        }
+
+        function renderMoodTags(values) {
+            document.querySelectorAll('.mood-tag').forEach(tag => {
+                tag.classList.toggle('active', values.includes(tag.textContent.trim()));
+            });
+        }
+
+        function saveEpisodeSettings() {
+            currentEpisode.settings = {
+                duration: document.getElementById('setting-duration').value,
+                ratio: document.getElementById('setting-ratio').value,
+                dialogue: document.getElementById('setting-dialogue').value,
+                mood: document.getElementById('setting-mood').value.trim() || '悬疑、压抑、命运感'
+            };
+            currentEpisode.outputs[1] = buildSettingsOutput(currentEpisode.settings);
+            currentEpisode.approved[1] = false;
+            currentEpisode.chat.push({ role: 'agent', agent: 'AI 制片', text: `基础设置已保存：${currentEpisode.settings.duration} / ${currentEpisode.settings.ratio} / ${currentEpisode.settings.dialogue} / ${currentEpisode.settings.mood}` });
+            renderWorkspace();
+            showToast('基础设置已保存');
+        }
+
+        function getStageDesc(stage) {
+            const desc = {
+                1: '设置片长、画幅、对白语言和情绪基调。',
+                2: '把故事梗概整理成可编辑剧本。',
+                3: '生成角色列表和角色描述。',
+                4: '生成关键场景和氛围描述。',
+                5: '把剧本拆成镜头方案。',
+                6: '用宫格预览关键镜头。',
+                7: '生成分镜视频并管理版本。',
+                8: '生成音乐、环境音和关键音效。',
+                9: '合成预览，准备导出。'
+            };
+            return desc[stage] || '';
+        }
+
+        function buildStageEmpty(stage) {
+            return `<div class="status-card">尚未生成。点击“${stageActions[stage]}”开始。</div>`;
+        }
+
+        function buildDeliverables(stage) {
+            if (stage === 3 || stage === 4) {
+                return buildAssetSummary() + buildCards(stage);
+            }
+            if (stage === 6) {
+                return buildGridEditor();
+            }
+            if (stage === 7) {
+                return buildCards(stage);
+            }
+            if (stage === 9) {
+                return `<div class="timeline">${(currentEpisode.outputs[5] || outputData[5]).map(item => `<div class="timeline-shot"><strong>${item[0]}</strong><br>${item[1]}</div>`).join('')}</div><br>${buildCards(stage)}`;
+            }
+            return buildCards(stage);
+        }
+
+        function buildCards(stage) {
+            const confirmed = currentEpisode.approved[stage] ? ' confirmed' : '';
+            return `<div class="deliverable-grid">${(currentEpisode.outputs[stage] || []).map((item, index) => `
+                <div class="deliverable-card${confirmed}">
+                    <div class="deliverable-title">${item[0]}</div>
+                    <div class="deliverable-text">${item[1]}</div>
+                    <div class="deliverable-actions">
+                        <button class="mini-btn" onclick="showToast('已打开查看：${item[0]}')">查看</button>
+                        <button class="mini-btn" onclick="showToast('进入编辑：${item[0]}')">编辑</button>
+                        <button class="mini-btn" onclick="regenerateItem(${stage}, ${index})">重新生成</button>
+                        <button class="mini-btn" onclick="showToast('历史版本已打开')">历史</button>
+                        ${stage === 3 ? `<button class="mini-btn" onclick="addAsset('characters', ${index})">加入角色资产</button>` : ''}
+                        ${stage === 4 ? `<button class="mini-btn" onclick="addAsset('scenes', ${index})">加入场景资产</button>` : ''}
+                        ${stage === 5 ? `<button class="mini-btn" onclick="bindShotAssets(${index})">绑定资产</button>` : ''}
+                        ${stage === 7 ? `<button class="mini-btn" onclick="openVideoHistory(${index})">版本记录</button>` : ''}
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        function buildAssetSummary() {
+            return `
+                <div class="asset-summary">
+                    <div class="asset-pill">角色资产<span class="asset-count">${currentEpisode.assets.characters.length}</span></div>
+                    <div class="asset-pill">场景资产<span class="asset-count">${currentEpisode.assets.scenes.length}</span></div>
+                </div>
+                <div class="phase2-toolbar">
+                    <button class="mini-btn" onclick="openAssetLibrary()">打开资产库</button>
+                    <button class="mini-btn" onclick="reuseAsset()">用资产出演</button>
+                </div>
+            `;
+        }
+
+        function buildGridEditor() {
+            const cells = currentEpisode.outputs[6] || [];
+            return `
+                <div class="phase2-toolbar">
+                    <button class="mini-btn" onclick="smartExpandGrid()">智能扩写</button>
+                    <button class="mini-btn" onclick="handcraftPrompt()">手搓提示词</button>
+                    <button class="mini-btn" onclick="moveSelectedGrid(-1)">前移</button>
+                    <button class="mini-btn" onclick="moveSelectedGrid(1)">后移</button>
+                    <button class="mini-btn" onclick="insertGridCell()">插入镜头</button>
+                    <button class="mini-btn" onclick="deleteSelectedGrid()">删除选中</button>
+                </div>
+                <div class="grid-result">
+                    ${cells.map((item, index) => `
+                        <div class="grid-cell ${currentEpisode.selectedGrid.includes(index) ? 'selected' : ''}" onclick="toggleGridCell(${index})">
+                            <span class="grid-cell-num">${item[0]}</span>
+                            <p class="grid-cell-text">${item[1]}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function regenerateItem(stage, index) {
+            currentEpisode.revisions[stage] = (currentEpisode.revisions[stage] || 0) + 1;
+            currentEpisode.approved[stage] = false;
+            if (stage === 7) addVideoVersion(index);
+            currentEpisode.chat.push({ role: 'agent', agent: stageAgents[stage], text: `「${currentEpisode.outputs[stage][index][0]}」已更新。` });
+            renderWorkspace();
+            showToast('已生成新版本');
+        }
+
+        function addAsset(type, index) {
+            const sourceStage = type === 'characters' ? 3 : 4;
+            const source = currentEpisode.outputs[sourceStage]?.[index];
+            if (!source) return;
+            const exists = currentEpisode.assets[type].some(asset => asset.name === source[0]);
+            if (exists) {
+                showToast('该资产已在资产库');
+                return;
+            }
+            currentEpisode.assets[type].push({ name: source[0], desc: source[1], used: 0 });
+            currentEpisode.chat.push({ role: 'agent', agent: type === 'characters' ? '角色设计师' : '场景设计师', text: `「${source[0]}」已加入资产库。` });
+            renderWorkspace();
+            showToast('已加入资产库');
+        }
+
+        function openAssetLibrary() {
+            if (!currentEpisode) {
+                showToast('请先打开一个项目');
+                return;
+            }
+            const characters = currentEpisode.assets.characters;
+            const scenes = currentEpisode.assets.scenes;
+            document.getElementById('asset-library-content').innerHTML = `
+                <div class="status-card">角色资产：${characters.length} 个 · 场景资产：${scenes.length} 个</div>
+                <div class="deliverable-grid">
+                    ${[...characters.map(a => ['角色', a]), ...scenes.map(a => ['场景', a])].map(([type, asset]) => `
+                        <div class="deliverable-card">
+                            <div class="deliverable-title">${type} / ${asset.name}</div>
+                            <div class="deliverable-text">${asset.desc}</div>
+                            <div class="deliverable-actions"><button class="mini-btn" onclick="reuseAsset('${asset.name}')">用 Ta 出演</button></div>
+                        </div>
+                    `).join('') || '<div class="status-card">暂无资产，请先在角色或场景阶段加入资产库。</div>'}
+                </div>
+            `;
+            showModal('asset-library-modal');
+        }
+
+        function reuseAsset(name = '') {
+            const label = name || '已选资产';
+            currentEpisode.chat.push({ role: 'agent', agent: 'AI 制片', text: `${label} 已加入当前上下文。` });
+            renderChat();
+            showToast('资产已加入上下文');
+        }
+
+        function bindShotAssets(index) {
+            const shot = currentEpisode.outputs[5]?.[index];
+            if (!shot) return;
+            const charName = currentEpisode.assets.characters[0]?.name || '林澈';
+            const sceneName = currentEpisode.assets.scenes[index % Math.max(1, currentEpisode.assets.scenes.length)]?.name || '深夜办公室';
+            shot[1] = `${shot[1]}（绑定：${charName} / ${sceneName}）`;
+            renderWorkspace();
+            showToast('已绑定角色与场景资产');
+        }
+
+        function toggleGridCell(index) {
+            const selected = currentEpisode.selectedGrid;
+            currentEpisode.selectedGrid = selected.includes(index) ? selected.filter(i => i !== index) : [...selected, index].sort((a, b) => a - b);
+            renderCanvas();
+        }
+
+        function moveSelectedGrid(direction) {
+            const selected = currentEpisode.selectedGrid;
+            if (selected.length !== 1) {
+                showToast('请选择一个宫格再移动');
+                return;
+            }
+            const from = selected[0];
+            const to = from + direction;
+            const cells = currentEpisode.outputs[6];
+            if (!cells || to < 0 || to >= cells.length) return;
+            [cells[from], cells[to]] = [cells[to], cells[from]];
+            currentEpisode.selectedGrid = [to];
+            renderWorkspace();
+            showToast('宫格顺序已调整');
+        }
+
+        function insertGridCell() {
+            const cells = currentEpisode.outputs[6];
+            if (!cells) return;
+            const at = currentEpisode.selectedGrid[0] ?? cells.length - 1;
+            cells.splice(at + 1, 0, [`${String(cells.length + 1).padStart(2, '0')}`, '新增镜头：补充情绪过渡或动作细节。']);
+            currentEpisode.selectedGrid = [at + 1];
+            renumberGrid();
+            renderWorkspace();
+            showToast('已插入新宫格');
+        }
+
+        function deleteSelectedGrid() {
+            const selected = currentEpisode.selectedGrid;
+            if (!selected.length) {
+                showToast('请先选择要删除的宫格');
+                return;
+            }
+            currentEpisode.outputs[6] = currentEpisode.outputs[6].filter((_, index) => !selected.includes(index));
+            currentEpisode.selectedGrid = [];
+            renumberGrid();
+            renderWorkspace();
+            showToast('已删除选中宫格');
+        }
+
+        function smartExpandGrid() {
+            const cells = currentEpisode.outputs[6];
+            if (!cells) return;
+            cells.push([`${String(cells.length + 1).padStart(2, '0')}`, '智能扩写：加入一个加强情绪铺垫的过渡镜头。']);
+            renumberGrid();
+            renderWorkspace();
+            showToast('智能扩写已生成新宫格');
+        }
+
+        function handcraftPrompt() {
+            currentEpisode.chat.push({ role: 'agent', agent: '分镜师', text: '手搓提示词已开启。请描述运镜、动作或光线。' });
+            renderChat();
+            showToast('手搓提示词模式已开启');
+        }
+
+        function renumberGrid() {
+            (currentEpisode.outputs[6] || []).forEach((item, index) => item[0] = String(index + 1).padStart(2, '0'));
+        }
+
+        function initVideoHistory() {
+            (currentEpisode.outputs[7] || []).forEach((item, index) => {
+                if (!currentEpisode.videoHistory[index]) {
+                    currentEpisode.videoHistory[index] = [
+                        { version: 'v1', desc: item[1], active: false },
+                        { version: 'v2', desc: item[1].replace('已生成', '已优化'), active: true }
+                    ];
+                }
+            });
+        }
+
+        function addVideoVersion(index) {
+            if (!currentEpisode.videoHistory[index]) initVideoHistory();
+            const versions = currentEpisode.videoHistory[index] || [];
+            versions.forEach(v => v.active = false);
+            versions.push({ version: `v${versions.length + 1}`, desc: `${currentEpisode.outputs[7][index][1]} 新生成版本`, active: true });
+        }
+
+        function openVideoHistory(index) {
+            initVideoHistory();
+            activeVideoIndex = index;
+            const shot = currentEpisode.outputs[7]?.[index];
+            const versions = currentEpisode.videoHistory[index] || [];
+            document.getElementById('video-history-title').textContent = `${shot?.[0] || '分镜视频'}历史版本`;
+            document.getElementById('video-history-content').innerHTML = `
+                <div class="version-list">
+                    ${versions.map((version, versionIndex) => `
+                        <div class="version-item ${version.active ? 'active' : ''}">
+                            <div class="deliverable-title">${version.version}${version.active ? ' · 当前使用' : ''}</div>
+                            <div class="deliverable-text">${version.desc}</div>
+                            <div class="version-meta">可预览、下载、选为当前版本</div>
+                            <div class="deliverable-actions">
+                                <button class="mini-btn" onclick="selectVideoVersion(${versionIndex})">选用</button>
+                                <button class="mini-btn" onclick="showToast('已下载 ${version.version}')">下载</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            showModal('video-history-modal');
+        }
+
+        function selectVideoVersion(versionIndex) {
+            const versions = currentEpisode.videoHistory[activeVideoIndex] || [];
+            versions.forEach((version, index) => version.active = index === versionIndex);
+            showToast('已切换当前视频版本');
+            openVideoHistory(activeVideoIndex);
+        }
+
+        function renderChat() {
+            const chat = document.getElementById('agent-chat');
+            chat.innerHTML = currentEpisode.chat.map(msg => `
+                <div class="chat-message ${msg.role === 'user' ? 'user' : ''}">
+                    ${msg.role === 'agent' ? `<span class="chat-agent">${msg.agent}</span>` : ''}
+                    ${msg.text}
+                </div>
+            `).join('');
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function sendAgentMessage() {
+            const input = document.getElementById('agent-input');
+            if (!currentEpisode) {
+                showToast('请先进入一个项目');
+                return;
+            }
+            const text = input.value.trim();
+            if (!text) return;
+            currentEpisode.chat.push({ role: 'user', text });
+            currentEpisode.chat.push({ role: 'agent', agent: stageAgents[currentStage], text: `收到，会按这个方向调整「${stageNames[currentStage]}」。` });
+            input.value = '';
+            renderChat();
+            showToast('需求已发送给 Agent');
+        }
+
+        function renderPreview() {
+            const hasOutput = Boolean(currentEpisode.outputs[currentStage]);
+            document.getElementById('preview-empty').style.display = hasOutput ? 'none' : 'flex';
+            document.getElementById('preview-loading').style.display = 'none';
+            document.querySelectorAll('.result-content').forEach(el => el.style.display = 'none');
+            document.getElementById('audit-content').style.display = 'none';
+
+            if (!hasOutput) {
+                document.getElementById('preview-empty').innerHTML = `<div class="preview-empty-icon">🎬</div><div>点击“${stageActions[currentStage]}”开始</div>`;
+                setFooterEnabled(false);
+                return;
+            }
+
+            if (previewTab === 'audit') {
+                renderAudit();
+                document.getElementById('audit-content').style.display = 'block';
+            } else {
+                document.getElementById('result-current').innerHTML = buildResultHtml(currentStage);
+                document.getElementById('result-current').style.display = 'block';
+            }
+
+            setFooterEnabled(true);
+            document.getElementById('approve-btn').textContent = currentEpisode.approved[currentStage]
+                ? (currentStage === 4 ? '✓ 已完成' : '✓ 已通过')
+                : '✓ 确认通过';
+        }
+
+        function buildResultHtml(stage) {
+            const data = currentEpisode.outputs[stage] || [];
+            const approvedClass = currentEpisode.approved[stage] ? ' approved' : '';
+            if (stage === 6) {
+                const gridClass = 'grid-result';
+                return `<div class="${gridClass}">${data.map(item => `
+                    <div class="grid-cell">
+                        <span class="grid-cell-num">${item[0]}</span>
+                        <p class="grid-cell-text">${item[1]}</p>
+                    </div>
+                `).join('')}</div>`;
+            }
+            return `<div class="result-list">${data.map((item, index) => `
+                <div class="result-item${approvedClass}">
+                    <div class="result-header"><span class="result-num">${index + 1}</span><span class="result-title">${item[0]}</span></div>
+                    <p class="result-text">${item[1]}</p>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        function renderAudit() {
+            const notes = auditData[currentStage] || [];
+            const revisionCount = currentEpisode.revisions[currentStage] || 0;
+            document.getElementById('audit-content').innerHTML = `
+                <div class="status-card">
+                    当前状态：${currentEpisode.approved[currentStage] ? '已确认通过' : '待人工确认'}<br>
+                    修改轮次：${revisionCount} 次
+                </div>
+                <div class="audit-card">
+                    <div class="audit-title">AI 导演审核意见</div>
+                    <div class="audit-list">
+                        ${notes.map(note => `<div class="audit-item"><span class="audit-mark">✓</span><span>${note}</span></div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function switchPreviewTab(tab) {
+            previewTab = tab;
+            updatePreviewTabs();
+            renderPreview();
+        }
+
+        function updatePreviewTabs() {
+            document.querySelectorAll('.preview-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === previewTab);
+            });
+        }
+
+        function setFooterEnabled(enabled) {
+            document.querySelectorAll('.preview-footer button').forEach(btn => {
+                btn.disabled = !enabled;
+            });
+        }
+
+        function approveStage() {
+            if (!currentEpisode.outputs[currentStage]) {
+                showToast('请先生成当前阶段产出');
+                return;
+            }
+            currentEpisode.approved[currentStage] = true;
+            if (currentStage < stageNames.length - 1) {
+                currentStage++;
+                currentEpisode.stage = currentStage;
+                renderWorkspace();
+                showToast(`已通过，进入${stageNames[currentStage]}`);
+            } else {
+                currentEpisode.stage = stageNames.length - 1;
+                renderWorkspace();
+                showToast('全部流程已完成，可以导出');
+            }
+        }
+
+        function submitRevise() {
+            const value = document.getElementById('revise-input').value.trim();
+            currentEpisode.revisions[currentStage] = (currentEpisode.revisions[currentStage] || 0) + 1;
+            currentEpisode.approved[currentStage] = false;
+            hideModal('revise-modal');
+            document.getElementById('revise-input').value = '';
+            showToast(value ? '修改意见已提交，重新生成中' : '已发起重新生成');
+            setTimeout(startGenerate, 300);
+        }
+
+        function exportProject() {
+            if (!currentEpisode || !currentEpisode.outputs[currentStage]) {
+                showToast('请先生成需要导出的产出');
+                return;
+            }
+            const format = document.getElementById('export-format').value;
+            hideModal('export-modal');
+            showToast(`已导出 ${format.toUpperCase()}：${currentProject.name} / ${currentEpisode.name}`);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('active');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('active'), 1800);
+        }
+
+        // ========== 弹窗与面板 ==========
+        function showModal(id) { document.getElementById(id).classList.add('active'); }
+        function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+        function toggleSettings() { document.getElementById('settings-panel').classList.toggle('active'); }
+
+        document.querySelectorAll('.modal-overlay').forEach(el => {
+            el.addEventListener('click', e => { if (e.target === el) el.classList.remove('active'); });
+        });
+
+        document.getElementById('new-project-name').addEventListener('keypress', e => { if (e.key === 'Enter') createProject(); });
+        document.getElementById('login-account').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+        document.getElementById('login-code').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+        document.getElementById('new-episode-name').addEventListener('keypress', e => { if (e.key === 'Enter') createEpisode(); });
+        document.getElementById('edit-episode-name').addEventListener('keypress', e => { if (e.key === 'Enter') updateEpisode(); });
+        document.getElementById('agent-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                sendAgentMessage();
+            }
+        });
+        document.getElementById('agent-send').addEventListener('click', sendAgentMessage);
+        document.getElementById('template-search').addEventListener('input', renderTemplateLibrary);
+        document.getElementById('template-ratio').addEventListener('change', renderTemplateLibrary);
+        document.getElementById('template-difficulty').addEventListener('change', renderTemplateLibrary);
+        document.getElementById('asset-search').addEventListener('input', renderAssetLibraryPage);
+        document.getElementById('asset-sort').addEventListener('change', renderAssetLibraryPage);
+
+        // 初始化
+        renderUserChrome();
+        renderProjects();
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+---
+title: Bento v.1
+---
+extends layouts/layout
+block content
+	.bento-outer.js-bento-outer
+		.bento-background
+		.bento-control
+			button.bento-control__button.js-bento-default.bento--active
+				.bento-control__icon
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5.388 19.923l.34-.668h0l-.34.668zm-1.311-1.311l-.668.34h0l.668-.34zm15.846 0l-.668-.341h0l.668.341zm-1.311 1.311l-.341-.668h0l.341.668zm1.311-14.535l-.668.34h0l.668-.34zm-1.311-1.311l.34-.668h0l-.34.668zM4.077 5.388l.668.34-.668-.34zm1.311-1.311l.34.668-.34-.668zM20.25 15H21v-1.5h-.75V15zm-16.5-1.5H3V15h.75v-1.5zM19.5 8.55v6.9H21v-6.9h-1.5zM15.45 19.5h-6.9V21h6.9v-1.5zM4.5 15.45v-6.9H3v6.9h1.5zM8.55 4.5h6.9V3h-6.9v1.5zm0 15c-.852 0-1.447-.001-1.909-.038-.454-.037-.715-.106-.912-.207l-.681 1.336c.444.226.924.321 1.471.365.538.044 1.204.043 2.031.043v-1.5zM3 15.45l.043 2.031c.045.547.139 1.027.365 1.471l1.337-.681c-.101-.197-.17-.458-.207-.912-.038-.463-.038-1.057-.038-1.909H3zm2.729 3.805a2.25 2.25 0 0 1-.983-.983l-1.337.681a3.75 3.75 0 0 0 1.639 1.639l.681-1.336zM19.5 15.45l-.038 1.909c-.037.454-.106.715-.207.912l1.336.681c.226-.444.321-.924.365-1.471.044-.538.043-1.204.043-2.031h-1.5zM15.45 21l2.031-.043c.547-.045 1.027-.139 1.471-.365l-.681-1.336c-.197.101-.458.17-.912.207-.463.038-1.057.038-1.909.038V21zm3.805-2.729a2.25 2.25 0 0 1-.983.983l.681 1.336a3.75 3.75 0 0 0 1.639-1.639l-1.336-.681zM21 8.55l-.043-2.031c-.045-.547-.139-1.027-.365-1.471l-1.336.681c.101.198.17.458.207.912.038.463.038 1.057.038 1.909H21zM15.45 4.5l1.909.038c.454.037.715.106.912.207l.681-1.337c-.444-.226-.924-.321-1.471-.365C16.944 2.999 16.278 3 15.45 3v1.5zm5.141.548a3.75 3.75 0 0 0-1.639-1.639l-.681 1.337a2.25 2.25 0 0 1 .983.983l1.336-.681zM4.5 8.55l.038-1.909c.037-.454.106-.715.207-.912l-1.337-.681c-.226.444-.321.924-.365 1.471C2.999 7.056 3 7.722 3 8.55h1.5zM8.55 3c-.828 0-1.494-.001-2.031.043-.547.045-1.027.139-1.471.365l.681 1.337c.198-.101.458-.17.912-.207.463-.038 1.057-.038 1.909-.038V3zM4.745 5.729a2.25 2.25 0 0 1 .983-.983l-.681-1.337a3.75 3.75 0 0 0-1.639 1.639l1.337.681zM3.75 15h16.5v-1.5H3.75V15z"/></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M8.518 3h6.964l1.999.043c.547.045 1.027.139 1.471.365a3.75 3.75 0 0 1 1.639 1.639c.226.444.321.924.365 1.471C21 7.049 21 7.705 21 8.518V13.5H3V8.518l.043-1.999c.045-.547.139-1.027.365-1.471a3.75 3.75 0 0 1 1.639-1.639c.444-.226.924-.321 1.471-.365C7.049 3 7.705 3 8.518 3zM3 15v.482l.043 1.999c.045.547.139 1.027.365 1.471a3.75 3.75 0 0 0 1.639 1.639c.444.226.924.321 1.471.365C7.049 21 7.705 21 8.518 21h6.964l1.999-.043c.547-.045 1.027-.139 1.471-.365a3.75 3.75 0 0 0 1.639-1.639c.226-.444.321-.924.365-1.471.043-.531.043-1.186.043-1.999V15H3z"/></svg>
+				span Default
+			button.bento-control__button.js-bento-square
+				.bento-control__icon
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15.45 3c2.251 0 2.786.044 3.502.409a3.75 3.75 0 0 1 1.639 1.639c.365.716.409 1.251.409 3.502v6.9c0 2.251-.044 2.786-.409 3.502a3.75 3.75 0 0 1-1.639 1.639c-.716.365-1.252.409-3.502.409h-6.9c-2.251 0-2.786-.044-3.502-.409a3.75 3.75 0 0 1-1.639-1.639C3.044 18.236 3 17.701 3 15.45v-6.9c0-2.251.044-2.786.409-3.502a3.75 3.75 0 0 1 1.639-1.639C5.764 3.044 6.299 3 8.55 3h6.9zm.476 1.501H8.074c-1.554.007-1.974.055-2.346.244a2.25 2.25 0 0 0-.983.983c-.189.371-.237.792-.244 2.346v7.852c.007 1.554.055 1.974.244 2.346a2.25 2.25 0 0 0 .983.983c.407.207.872.245 2.821.245h6.9c1.949 0 2.415-.038 2.822-.245a2.25 2.25 0 0 0 .983-.983c.207-.407.245-.872.245-2.822v-6.9c0-1.949-.038-2.415-.245-2.821a2.25 2.25 0 0 0-.983-.983c-.371-.189-.792-.237-2.346-.244z"/></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15.482 3H8.518l-1.999.043c-.547.045-1.027.139-1.471.365a3.75 3.75 0 0 0-1.639 1.639c-.226.444-.321.924-.365 1.471C3 7.049 3 7.705 3 8.518v6.964l.043 1.999c.045.547.139 1.027.365 1.471a3.75 3.75 0 0 0 1.639 1.639c.444.226.924.321 1.471.365C7.049 21 7.705 21 8.518 21h6.964l1.999-.043c.547-.045 1.027-.139 1.471-.365a3.75 3.75 0 0 0 1.639-1.639c.226-.444.321-.924.365-1.471.043-.531.043-1.186.043-1.999V8.518l-.043-1.999c-.045-.547-.139-1.027-.365-1.471a3.75 3.75 0 0 0-1.639-1.639c-.444-.226-.924-.321-1.471-.365C16.951 3 16.295 3 15.482 3z"/></svg>
+				span Square
+			button.bento-control__button.js-bento-horizontal
+				.bento-control__icon
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5.388 19.923l.34-.668h0l-.34.668zm-1.311-1.311l-.668.34h0l.668-.34zm15.846 0l-.668-.341h0l.668.341zm-1.311 1.311l-.341-.668h0l.341.668zm1.311-14.535l-.668.34h0l.668-.34zm-1.311-1.311l.34-.668h0l-.34.668zM4.077 5.388l.668.34-.668-.34zm1.311-1.311l.34.668-.34-.668zM13.5 20.25V21H15v-.75h-1.5zM15 3.75V3h-1.5v.75H15zm4.5 4.8v6.9H21v-6.9h-1.5zM15.45 19.5h-6.9V21h6.9v-1.5zM4.5 15.45v-6.9H3v6.9h1.5zM8.55 4.5h6.9V3h-6.9v1.5zm0 15c-.852 0-1.447-.001-1.909-.038-.454-.037-.715-.106-.912-.207l-.681 1.336c.444.226.924.321 1.471.365.538.044 1.204.043 2.031.043v-1.5zM3 15.45l.043 2.031c.045.547.139 1.027.365 1.471l1.337-.681c-.101-.197-.17-.458-.207-.912-.038-.463-.038-1.057-.038-1.909H3zm2.729 3.805a2.25 2.25 0 0 1-.983-.983l-1.337.681a3.75 3.75 0 0 0 1.639 1.639l.681-1.336zM19.5 15.45l-.038 1.909c-.037.454-.106.715-.207.912l1.336.681c.226-.444.321-.924.365-1.471.044-.538.043-1.204.043-2.031h-1.5zM15.45 21l2.031-.043c.547-.045 1.027-.139 1.471-.365l-.681-1.336c-.197.101-.458.17-.912.207-.463.038-1.057.038-1.909.038V21zm3.805-2.729a2.25 2.25 0 0 1-.983.983l.681 1.336a3.75 3.75 0 0 0 1.639-1.639l-1.336-.681zM21 8.55l-.043-2.031c-.045-.547-.139-1.027-.365-1.471l-1.336.681c.101.198.17.458.207.912.038.463.038 1.057.038 1.909H21zM15.45 4.5l1.909.038c.454.037.715.106.912.207l.681-1.337c-.444-.226-.924-.321-1.471-.365C16.944 2.999 16.278 3 15.45 3v1.5zm5.141.548a3.75 3.75 0 0 0-1.639-1.639l-.681 1.337a2.25 2.25 0 0 1 .983.983l1.336-.681zM4.5 8.55l.038-1.909c.037-.454.106-.715.207-.912l-1.337-.681c-.226.444-.321.924-.365 1.471C2.999 7.056 3 7.722 3 8.55h1.5zM8.55 3c-.828 0-1.494-.001-2.031.043-.547.045-1.027.139-1.471.365l.681 1.337c.198-.101.458-.17.912-.207.463-.038 1.057-.038 1.909-.038V3zM4.745 5.729a2.25 2.25 0 0 1 .983-.983l-.681-1.337a3.75 3.75 0 0 0-1.639 1.639l1.337.681zM15 20.25V3.75h-1.5v16.5H15z"/></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M8.518 3H13.5v18H8.518c-.813 0-1.468 0-1.999-.043-.547-.045-1.027-.139-1.471-.365a3.75 3.75 0 0 1-1.639-1.639c-.226-.444-.321-.924-.365-1.471C3 16.951 3 16.295 3 15.482V8.518l.043-1.999c.045-.547.139-1.027.365-1.471a3.75 3.75 0 0 1 1.639-1.639c.444-.226.924-.321 1.471-.365C7.049 3 7.705 3 8.518 3zM15 21h.482l1.999-.043c.547-.045 1.027-.139 1.471-.365a3.75 3.75 0 0 0 1.639-1.639c.226-.444.321-.924.365-1.471.043-.531.043-1.186.043-1.999V8.518l-.043-1.999c-.045-.547-.139-1.027-.365-1.471a3.75 3.75 0 0 0-1.639-1.639c-.444-.226-.924-.321-1.471-.365C16.951 3 16.295 3 15.482 3H15v18z"/></svg>
+				span Horizontal
+			button.bento-control__button.js-bento-background
+				.bento-control__icon
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5.879 14.121l.53.53h0l-.53-.53zM6.75 4.5h10.5V3H6.75v1.5zM19.5 6.75v10.5H21V6.75h-1.5zM4.28 16.78l2.129-2.129-1.061-1.061L3.22 15.72 4.28 16.78zm.22.47v-1H3v1h1.5zm0-1v-9.5H3v9.5h1.5zm5.091-1.598l6.129 6.129 1.061-1.061-6.129-6.129-1.061 1.061zM17.25 19.5h-1V21h1v-1.5zm-1 0h-9.5V21h9.5v-1.5zm-9.841-4.848a2.25 2.25 0 0 1 3.182 0l1.061-1.061a3.75 3.75 0 0 0-5.303 0l1.061 1.061zM3 17.25A3.75 3.75 0 0 0 6.75 21v-1.5a2.25 2.25 0 0 1-2.25-2.25H3zm16.5 0a2.25 2.25 0 0 1-2.25 2.25V21A3.75 3.75 0 0 0 21 17.25h-1.5zM17.25 4.5a2.25 2.25 0 0 1 2.25 2.25H21A3.75 3.75 0 0 0 17.25 3v1.5zM6.75 3A3.75 3.75 0 0 0 3 6.75h1.5A2.25 2.25 0 0 1 6.75 4.5V3zm9 6.5a1.25 1.25 0 0 1-1.25 1.25v1.5a2.75 2.75 0 0 0 2.75-2.75h-1.5zm-1.25 1.25a1.25 1.25 0 0 1-1.25-1.25h-1.5a2.75 2.75 0 0 0 2.75 2.75v-1.5zM13.25 9.5a1.25 1.25 0 0 1 1.25-1.25v-1.5a2.75 2.75 0 0 0-2.75 2.75h1.5zm1.25-1.25a1.25 1.25 0 0 1 1.25 1.25h1.5a2.75 2.75 0 0 0-2.75-2.75v1.5z"/></svg>
+				span Background
+				.bento-control__switch
+		.bento-list.js-bento-list
+			.bento-list__bento
+				.bento-list__number Card 01
+				include ./bentos/bento-1
+			.bento-list__bento
+				.bento-list__number Card 02
+				include ./bentos/bento-2
+			.bento-list__bento
+				.bento-list__number Card 03
+				include ./bentos/bento-3
+			.bento-list__bento
+				.bento-list__number Card 04
+				include ./bentos/bento-4
+			.bento-list__bento
+				.bento-list__number Card 05
+				include ./bentos/bento-5
+			.bento-list__bento
+				.bento-list__number Card 06
+				include ./bentos/bento-6
+			.bento-list__bento
+				.bento-list__number Card 07
+				include ./bentos/bento-7
+			.bento-list__bento
+				.bento-list__number Card 08
+				include ./bentos/bento-8
+			.bento-list__bento
+				.bento-list__number Card 09
+				include ./bentos/bento-9
+			.bento-list__bento
+				.bento-list__number Card 10
+				include ./bentos/bento-10
+			.bento-list__bento
+				.bento-list__number Card 11
+				include ./bentos/bento-11
+			.bento-list__bento
+				.bento-list__number Card 12
+				include ./bentos/bento-12
+			.bento-list__bento
+				.bento-list__number Card 13
+				include ./bentos/bento-13
+			.bento-list__bento
+				.bento-list__number Card 14
+				include ./bentos/bento-14
+			.bento-list__bento
+				.bento-list__number Card 15
+				include ./bentos/bento-15
+			.bento-list__bento
+				.bento-list__number Card 16
+				include ./bentos/bento-16
+			.bento-list__bento
+				.bento-list__number Card 17
+				include ./bentos/bento-17
+			.bento-list__bento
+				.bento-list__number Card 18
+				include ./bentos/bento-18
+			.bento-list__bento
+				.bento-list__number Card 19
+				include ./bentos/bento-19
+			.bento-list__bento
+				.bento-list__number Card 20
+				include ./bentos/bento-20
+			.bento-list__bento
+				.bento-list__number Card 21
+				include ./bentos/bento-21
+			.bento-list__bento
+				.bento-list__number Card 22
+				include ./bentos/bento-22
+			.bento-list__bento
+				.bento-list__number Card 23
+				include ./bentos/bento-23
+			.bento-list__bento
+				.bento-list__number Card 24
+				include ./bentos/bento-24
+			.bento-list__bento
+				.bento-list__number Card 25
+				include ./bentos/bento-25
+			.bento-list__bento
+				.bento-list__number Card 26
+				include ./bentos/bento-26
+			.bento-list__bento
+				.bento-list__number Card 27
+				include ./bentos/bento-27
+			.bento-list__bento
+				.bento-list__number Card 28
+				include ./bentos/bento-28
+			.bento-list__bento
+				.bento-list__number Card 29
+				include ./bentos/bento-29
+			.bento-list__bento
+				.bento-list__number Card 30
+				include ./bentos/bento-30
+	script.
+		const bentoOuter = document.querySelector('.js-bento-outer'),
+			buttonDefault = document.querySelector('.js-bento-default'),
+			buttonSquare = document.querySelector('.js-bento-square'),
+			buttonHorizontal = document.querySelector('.js-bento-horizontal'),
+			buttonBackground = document.querySelector('.js-bento-background'),
+			bentoCard = document.querySelectorAll('.bento');
+
+		buttonBackground.addEventListener('click', function() {
+			buttonBackground.classList.toggle('bento--active');
+			bentoOuter.classList.toggle('bento--bg');
+		});
+
+		buttonDefault.addEventListener('click', function() {
+			buttonDefault.classList.toggle('bento--active');
+			buttonSquare.classList.remove('bento--active');
+			buttonHorizontal.classList.remove('bento--active');
+			bentoCard.forEach((element) => {
+				element.classList.remove('bento_wide');
+				element.classList.remove('bento_horizontal');
+			});
+		});
+
+		buttonSquare.addEventListener('click', function() {
+			buttonSquare.classList.toggle('bento--active');
+			buttonDefault.classList.remove('bento--active');
+			buttonHorizontal.classList.remove('bento--active');
+			bentoCard.forEach((element) => {
+				element.classList.toggle('bento_wide');
+				element.classList.remove('bento_horizontal');
+			});
+		});
+
+		buttonHorizontal.addEventListener('click', function() {
+			buttonHorizontal.classList.toggle('bento--active');
+			buttonDefault.classList.remove('bento--active');
+			buttonSquare.classList.remove('bento--active');
+			bentoCard.forEach((element) => {
+				element.classList.toggle('bento_horizontal');
+				element.classList.remove('bento_wide');
+			});
+		});
+		
+
+		
+		

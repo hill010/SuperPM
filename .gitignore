@@ -18,5 +18,8 @@ Thumbs.db
 .env
 .env.local
 
+# MCP config (may contain paths/credentials)
+.mcp.json
+
 # Logs
 *.log
