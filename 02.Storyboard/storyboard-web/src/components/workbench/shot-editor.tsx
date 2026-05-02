@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, Sparkles, Copy, Trash2, Check } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronDown, ChevronUp, Sparkles, Copy, Trash2, Check, Loader2 } from "lucide-react";
 import type { MockShot } from "@/lib/mock-data";
+
+type SaveState = "idle" | "saving" | "saved";
 
 interface ShotEditorProps {
   shot: MockShot | null;
   onChange: (shot: MockShot) => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  onGenerateFirstFrame?: () => boolean;
+  onGenerateLastFrame?: () => boolean;
 }
 
 function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
@@ -54,11 +58,23 @@ function Field({ label, value, onChange, multiline = false, placeholder = "" }: 
   );
 }
 
-export function ShotEditor({ shot, onChange, onDelete, onDuplicate }: ShotEditorProps) {
+export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFirstFrame, onGenerateLastFrame }: ShotEditorProps) {
   const [local, setLocal] = useState<MockShot | null>(shot);
   const [model, setModel] = useState("Flux Pro");
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => { setLocal(shot); }, [shot]);
+
+  const debouncedSave = useCallback((updated: MockShot) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setSaveState("saving");
+    timeoutRef.current = setTimeout(() => {
+      onChange(updated);
+      setSaveState("saved");
+    }, 800);
+  }, [onChange]);
 
   if (!local) {
     return (
@@ -69,9 +85,29 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate }: ShotEditor
   }
 
   const update = (field: keyof MockShot, value: string | number) => {
-    const updated = { ...local, [field]: value };
+    const updated = { ...local!, [field]: value };
     setLocal(updated);
-    onChange(updated);
+    debouncedSave(updated);
+  };
+
+  const handleGenerateFirstFrame = () => {
+    if (onGenerateFirstFrame) {
+      const success = onGenerateFirstFrame();
+      if (!success) {
+        setShowInsufficientCredits(true);
+        setTimeout(() => setShowInsufficientCredits(false), 2000);
+      }
+    }
+  };
+
+  const handleGenerateLastFrame = () => {
+    if (onGenerateLastFrame) {
+      const success = onGenerateLastFrame();
+      if (!success) {
+        setShowInsufficientCredits(true);
+        setTimeout(() => setShowInsufficientCredits(false), 2000);
+      }
+    }
   };
 
   return (
@@ -129,15 +165,18 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate }: ShotEditor
               ))}
             </select>
           </div>
-          <button className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors">
+          <button onClick={handleGenerateFirstFrame} className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors">
             <Sparkles className="w-3.5 h-3.5" />
             生成首帧
           </button>
+          {showInsufficientCredits && (
+            <p className="text-xs text-error text-center">积分不足，请充值后重试</p>
+          )}
         </Section>
 
         <Section title="尾帧参数" defaultOpen={false}>
           <Field label="尾帧提示词" value={local.lastFramePrompt} onChange={(v) => update("lastFramePrompt", v)} multiline placeholder="Last frame image prompt" />
-          <button className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors">
+          <button onClick={handleGenerateLastFrame} className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors">
             <Sparkles className="w-3.5 h-3.5" />
             生成尾帧
           </button>
@@ -150,8 +189,17 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate }: ShotEditor
 
       {/* Auto-save indicator */}
       <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-border">
-        <Check className="w-3.5 h-3.5 text-success" />
-        <span className="text-xs text-text-muted">自动保存已开启</span>
+        {saveState === "saving" ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+            <span className="text-xs text-text-muted">保存中...</span>
+          </>
+        ) : (
+          <>
+            <Check className="w-3.5 h-3.5 text-success" />
+            <span className="text-xs text-text-muted">已自动保存</span>
+          </>
+        )}
       </div>
     </div>
   );

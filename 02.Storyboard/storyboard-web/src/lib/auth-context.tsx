@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 interface User {
   email: string;
   displayName: string;
+  credits: number;
 }
 
 interface AuthContextType {
@@ -13,6 +14,7 @@ interface AuthContextType {
   register: (email: string, password: string, displayName: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
+  deductCredits: (amount: number) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -27,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, _password: string): Promise<boolean> => {
     await new Promise((r) => setTimeout(r, 800));
-    const u = { email, displayName: email.split("@")[0] };
+    const u = { email, displayName: email.split("@")[0], credits: 1250 };
     setUser(u);
     localStorage.setItem("storyboard_user", JSON.stringify(u));
     return true;
@@ -35,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (email: string, _password: string, displayName: string): Promise<boolean> => {
     await new Promise((r) => setTimeout(r, 1000));
-    const u = { email, displayName };
+    const u = { email, displayName, credits: 2000 };
     setUser(u);
     localStorage.setItem("storyboard_user", JSON.stringify(u));
     return true;
@@ -53,8 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("storyboard_user", JSON.stringify(updated));
   };
 
+  const deductCredits = (amount: number): boolean => {
+    if (!user || user.credits < amount) return false;
+    const updated = { ...user, credits: user.credits - amount };
+    setUser(updated);
+    localStorage.setItem("storyboard_user", JSON.stringify(updated));
+    return true;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, deductCredits }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/top-bar";
 import { LeftSidebar } from "@/components/layout/left-sidebar";
 import { RightPanel } from "@/components/layout/right-panel";
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { useAuth } from "@/lib/auth-context";
 import { User, CreditCard, Wallet, Check } from "lucide-react";
 
@@ -39,12 +40,13 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="h-screen flex flex-col">
-      <TopBar />
-      <div className="flex flex-1 overflow-hidden">
-        <LeftSidebar />
-        <main className="flex-1 bg-base overflow-auto">
-          <div className="flex">
+    <AuthGuard>
+      <div className="h-screen flex flex-col">
+        <TopBar />
+        <div className="flex flex-1 overflow-hidden">
+          <LeftSidebar />
+          <main className="flex-1 bg-base overflow-auto">
+            <div className="flex">
             {/* Left nav */}
             <nav className="w-60 shrink-0 bg-surface border-r border-border p-4 space-y-2">
               <h2 className="text-lg font-bold text-text-primary mb-3">设置</h2>
@@ -124,9 +126,9 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <p className="text-[13px] text-text-muted">积分余额</p>
-                    <p className="text-2xl font-bold text-accent">1,250 / 2,000</p>
+                    <p className="text-2xl font-bold text-accent">{user?.credits?.toLocaleString() ?? 0} / 2,000</p>
                     <div className="h-2 rounded bg-base overflow-hidden">
-                      <div className="h-full w-[62.5%] rounded bg-accent" />
+                      <div className="h-full rounded bg-accent" style={{ width: `${((user?.credits ?? 0) / 2000) * 100}%` }} />
                     </div>
                   </div>
                 </div>
@@ -172,5 +174,6 @@ export default function SettingsPage() {
         </RightPanel>
       </div>
     </div>
+    </AuthGuard>
   );
 }

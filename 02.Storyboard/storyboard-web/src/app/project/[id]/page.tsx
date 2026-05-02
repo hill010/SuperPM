@@ -2,21 +2,83 @@
 
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { TopBar } from "@/components/layout/top-bar";
 import { ShotCard } from "@/components/workbench/shot-card";
 import { ShotEditor } from "@/components/workbench/shot-editor";
 import { ScriptInput } from "@/components/workbench/script-input";
 import { TaskQueue } from "@/components/workbench/task-queue";
+import { AuthGuard } from "@/components/auth/auth-guard";
+import { GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowLeft, Plus, Trash2, FolderOpen, Image, Download,
   ListTodo, Settings, CheckSquare, Square, Sparkles,
 } from "lucide-react";
 import { mockProjects, mockShots, mockJobs, type MockShot, type MockJob } from "@/lib/mock-data";
 import { ExportDialog } from "@/components/project/export-dialog";
+import { useAuth } from "@/lib/auth-context";
+
+const CREDIT_COST_FIRST_FRAME = 30;
+const CREDIT_COST_LAST_FRAME = 30;
+
+interface SortableShotCardProps {
+  shot: MockShot;
+  selected: boolean;
+  batchMode: boolean;
+  selectedInBatch: boolean;
+  onClick: () => void;
+  onToggleBatch: () => void;
+}
+
+function SortableShotCard({ shot, selected, batchMode, selectedInBatch, onClick, onToggleBatch }: SortableShotCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative flex items-center gap-2">
+      <button {...attributes} {...listeners} className="shrink-0 cursor-grab active:cursor-grabbing p-1 hover:bg-base rounded">
+        <GripVertical className="w-4 h-4 text-text-muted" />
+      </button>
+      {batchMode && (
+        <button onClick={onToggleBatch} className="shrink-0">
+          {selectedInBatch ? (
+            <CheckSquare className="w-5 h-5 text-accent" />
+          ) : (
+            <Square className="w-5 h-5 text-text-muted" />
+          )}
+        </button>
+      )}
+      <div className="flex-1">
+        <ShotCard shot={shot} selected={selected} onClick={onClick} />
+      </div>
+    </div>
+  );
+}
 
 export default function WorkbenchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user, deductCredits } = useAuth();
   const project = mockProjects.find((p) => p.id === id) ?? mockProjects[0];
 
   const [shots, setShots] = useState<MockShot[]>(mockShots.filter((s) => s.projectId === "proj-001"));
@@ -26,6 +88,36 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
   const [batchMode, setBatchMode] = useState(false);
   const [activeNav, setActiveNav] = useState("shots");
   const [showExport, setShowExport] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = shots.findIndex((s) => s.id === active.id);
+      const newIndex = shots.findIndex((s) => s.id === over.id);
+      const reordered = arrayMove(shots, oldIndex, newIndex).map((s, i) => ({
+        ...s,
+        shotNumber: i + 1,
+      }));
+      setShots(reordered);
+    }
+  };
+
+  const handleGenerateFirstFrame = (): boolean => {
+    if (!user || user.credits < CREDIT_COST_FIRST_FRAME) return false;
+    return deductCredits(CREDIT_COST_FIRST_FRAME);
+  };
+
+  const handleGenerateLastFrame = (): boolean => {
+    if (!user || user.credits < CREDIT_COST_LAST_FRAME) return false;
+    return deductCredits(CREDIT_COST_LAST_FRAME);
+  };
 
   const currentShot = shots.find((s) => s.id === selectedShot) ?? null;
 
@@ -111,9 +203,10 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
   ];
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Top bar with breadcrumb */}
-      <header className="h-16 border-b border-border bg-surface flex items-center justify-between px-6 shrink-0">
+    <AuthGuard>
+      <div className="h-screen flex flex-col">
+        {/* Top bar with breadcrumb */}
+        <header className="h-16 border-b border-border bg-surface flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/")} className="flex items-center gap-3">
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent">
@@ -218,27 +311,21 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
           </div>
 
           <div className="flex-1 overflow-auto p-5 space-y-2.5">
-            {shots.map((shot) => (
-              <div key={shot.id} className="relative">
-                {batchMode && (
-                  <button
-                    onClick={() => toggleBatchSelect(shot.id)}
-                    className="absolute -left-1 top-5 z-10"
-                  >
-                    {selectedShots.has(shot.id) ? (
-                      <CheckSquare className="w-5 h-5 text-accent" />
-                    ) : (
-                      <Square className="w-5 h-5 text-text-muted" />
-                    )}
-                  </button>
-                )}
-                <ShotCard
-                  shot={shot}
-                  selected={selectedShot === shot.id}
-                  onClick={() => setSelectedShot(shot.id)}
-                />
-              </div>
-            ))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={shots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                {shots.map((shot) => (
+                  <SortableShotCard
+                    key={shot.id}
+                    shot={shot}
+                    selected={selectedShot === shot.id}
+                    batchMode={batchMode}
+                    selectedInBatch={selectedShots.has(shot.id)}
+                    onClick={() => setSelectedShot(shot.id)}
+                    onToggleBatch={() => toggleBatchSelect(shot.id)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </main>
 
@@ -249,6 +336,8 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
             onChange={handleShotChange}
             onDelete={handleDeleteShot}
             onDuplicate={handleDuplicateShot}
+            onGenerateFirstFrame={handleGenerateFirstFrame}
+            onGenerateLastFrame={handleGenerateLastFrame}
           />
         </aside>
       </div>
@@ -259,5 +348,6 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
         projectName={project.name}
       />
     </div>
+    </AuthGuard>
   );
 }
