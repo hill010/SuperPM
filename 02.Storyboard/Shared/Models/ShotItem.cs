@@ -1,0 +1,1228 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System.Windows.Input;
+using System.IO;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Linq;
+using Storyboard.Domain.Entities;
+using Storyboard.Shared.Time;
+
+namespace Storyboard.Models;
+
+public partial class ShotItem : ObservableObject
+{
+    private bool _suppressTickSync;
+
+    [ObservableProperty]
+    private int _shotNumber;
+
+    [ObservableProperty]
+    private double _duration;
+
+    [ObservableProperty]
+    private long _plannedDurationTick;
+
+    [ObservableProperty]
+    private long _generatedDurationTick;
+
+    [ObservableProperty]
+    private long _actualDurationTick;
+
+    [ObservableProperty]
+    private ShotTimingSource _timingSource = ShotTimingSource.ShotPlanned;
+
+    [ObservableProperty]
+    private bool _isSyncedToTimeline = true;
+
+    [ObservableProperty]
+    private bool _isDurationLocked;
+
+    [ObservableProperty]
+    private double _startTime;
+
+    [ObservableProperty]
+    private double _endTime;
+
+    [ObservableProperty]
+    private string _firstFramePrompt = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFramePrompt = string.Empty;
+
+    [ObservableProperty]
+    private string _coreContent = string.Empty;
+
+    [ObservableProperty]
+    private string _actionCommand = string.Empty;
+
+    [ObservableProperty]
+    private string _sceneSettings = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedModel = string.Empty;
+
+    // Image generation parameters
+    [ObservableProperty]
+    private string _imageSize = string.Empty;
+
+    [ObservableProperty]
+    private string _imageQuality = "2K";
+
+    [ObservableProperty]
+    private bool _imageWatermark;
+
+    // First frame image parameters
+    [ObservableProperty]
+    private string _firstFrameNegativePrompt = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameShotType = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameComposition = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameLightingType = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameTimeOfDay = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameColorStyle = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameLensType = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameImageSize = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameAspectRatio = string.Empty;
+
+    [ObservableProperty]
+    private string _firstFrameSelectedModel = string.Empty;
+
+    [ObservableProperty]
+    private int? _firstFrameSeed;
+
+    // Last frame image parameters
+    [ObservableProperty]
+    private string _lastFrameNegativePrompt = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameShotType = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameComposition = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameLightingType = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameTimeOfDay = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameColorStyle = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameLensType = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameImageSize = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameAspectRatio = string.Empty;
+
+    [ObservableProperty]
+    private string _lastFrameSelectedModel = string.Empty;
+
+    [ObservableProperty]
+    private int? _lastFrameSeed;
+
+    // Legacy image professional parameters (kept for backward compatibility, but deprecated)
+    [ObservableProperty]
+    private string _negativePrompt = string.Empty;
+
+    [ObservableProperty]
+    private string _aspectRatio = string.Empty;
+
+    [ObservableProperty]
+    private string _lightingType = string.Empty;
+
+    [ObservableProperty]
+    private string _timeOfDay = string.Empty;
+
+    [ObservableProperty]
+    private string _composition = string.Empty;
+
+    [ObservableProperty]
+    private string _colorStyle = string.Empty;
+
+    [ObservableProperty]
+    private string _shotType = string.Empty;
+
+    [ObservableProperty]
+    private string _lensType = string.Empty;
+
+    // Video generation parameters
+    [ObservableProperty]
+    private string _videoPrompt = string.Empty;
+
+    [ObservableProperty]
+    private string _sceneDescription = string.Empty;
+
+    [ObservableProperty]
+    private string _actionDescription = string.Empty;
+
+    [ObservableProperty]
+    private string _styleDescription = string.Empty;
+
+    [ObservableProperty]
+    private string _videoNegativePrompt = string.Empty;
+
+    // Video professional parameters
+    [ObservableProperty]
+    private string _cameraMovement = string.Empty;
+
+    [ObservableProperty]
+    private string _shootingStyle = string.Empty;
+
+    [ObservableProperty]
+    private string _videoEffect = string.Empty;
+
+    [ObservableProperty]
+    private string _videoResolution = "720p";
+
+    [ObservableProperty]
+    private string _videoRatio = "16:9";
+
+    [ObservableProperty]
+    private int _videoFrames;
+
+    [ObservableProperty]
+    private bool _useFirstFrameReference = true;
+
+    [ObservableProperty]
+    private bool _useLastFrameReference;
+
+    [ObservableProperty]
+    private bool _useReferenceImages;
+
+    [ObservableProperty]
+    private bool _generateAudio;
+
+    [ObservableProperty]
+    private int? _seed;
+
+    [ObservableProperty]
+    private bool _cameraFixed;
+
+    [ObservableProperty]
+    private bool _watermark;
+
+    // Material info fields
+    [ObservableProperty]
+    private string _materialResolution = string.Empty;
+
+    [ObservableProperty]
+    private string _materialFileSize = string.Empty;
+
+    [ObservableProperty]
+    private string _materialFormat = string.Empty;
+
+    [ObservableProperty]
+    private string _materialColorTone = string.Empty;
+
+    [ObservableProperty]
+    private string _materialBrightness = string.Empty;
+
+    // Collapsible section states
+    // First frame collapsible states
+    [ObservableProperty]
+    private bool _isFirstFrameProfessionalParamsExpanded;
+
+    [ObservableProperty]
+    private bool _isFirstFrameNegativePromptExpanded;
+
+    // Last frame collapsible states
+    [ObservableProperty]
+    private bool _isLastFrameProfessionalParamsExpanded;
+
+    [ObservableProperty]
+    private bool _isLastFrameNegativePromptExpanded;
+
+    // Legacy collapsible states (kept for backward compatibility, but deprecated)
+    [ObservableProperty]
+    private bool _isImageProfessionalParamsExpanded;
+
+    [ObservableProperty]
+    private bool _isImageNegativePromptExpanded;
+
+    // Video collapsible states
+    [ObservableProperty]
+    private bool _isVideoSceneActionExpanded;
+
+    [ObservableProperty]
+    private bool _isVideoProfessionalParamsExpanded;
+
+    [ObservableProperty]
+    private bool _isVideoNegativePromptExpanded;
+
+    [ObservableProperty]
+    private bool _isVideoAdvancedOptionsExpanded;
+
+    // Video generation mode selection
+    [ObservableProperty]
+    private bool _isTextToVideoMode;
+
+    [ObservableProperty]
+    private bool _useDurationMode = true;
+
+    [ObservableProperty]
+    private bool _useCustomSeed;
+
+    // Video generation presets
+    [ObservableProperty]
+    private string _selectedPreset = string.Empty;
+
+    [ObservableProperty]
+    private string? _firstFrameImagePath;
+
+    [ObservableProperty]
+    private string? _lastFrameImagePath;
+
+    [ObservableProperty]
+    private bool _isFirstFrameGenerating;
+
+    [ObservableProperty]
+    private bool _isLastFrameGenerating;
+
+    [ObservableProperty]
+    private string? _generatedVideoPath;
+
+    [ObservableProperty]
+    private bool _isVideoGenerating;
+
+    [ObservableProperty]
+    private bool _isAiParsing;
+
+    [ObservableProperty]
+    private string? _aiParseStatusMessage;
+
+    [ObservableProperty]
+    private string? _firstFrameGenerationMessage;
+
+    [ObservableProperty]
+    private string? _lastFrameGenerationMessage;
+
+    [ObservableProperty]
+    private string? _videoGenerationMessage;
+
+    [ObservableProperty]
+    private string? _materialThumbnailPath;
+
+    [ObservableProperty]
+    private string? _materialFilePath;
+
+    [ObservableProperty]
+    private ObservableCollection<ShotAssetItem> _firstFrameAssets = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ShotAssetItem> _lastFrameAssets = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ShotAssetItem> _videoAssets = new();
+
+    public IEnumerable<ShotAssetItem> FirstFrameAssetsOrdered => OrderAssetsByNewest(FirstFrameAssets);
+    public IEnumerable<ShotAssetItem> LastFrameAssetsOrdered => OrderAssetsByNewest(LastFrameAssets);
+    public IEnumerable<ShotAssetItem> VideoAssetsOrdered => OrderAssetsByNewest(VideoAssets);
+
+    [ObservableProperty]
+    private bool _isChecked;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    [ObservableProperty]
+    private bool _isHovered;
+
+    [ObservableProperty]
+    private int _selectedTabIndex;
+
+    [ObservableProperty]
+    private double _timelineStartPosition;
+
+    [ObservableProperty]
+    private double _timelineWidth;
+
+    public string? VideoOutputPath => GeneratedVideoPath;
+
+    // Get the thumbnail path for the current video from VideoAssets
+    public string? VideoThumbnailPath
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(GeneratedVideoPath))
+                return null;
+
+            var asset = VideoAssets.FirstOrDefault(a =>
+                string.Equals(a.FilePath, GeneratedVideoPath, StringComparison.OrdinalIgnoreCase));
+
+            return asset?.ThumbnailPath;
+        }
+    }
+
+    // Video generation no longer requires both first and last frame references.
+    // Users may provide 0, 1 or 2 reference images. Provider will handle accordingly.
+    public bool CanGenerateVideo => true;
+    public bool CanGenerateVideoNow => !IsVideoGenerating;
+
+    // Computed properties for UI
+    public bool IsNotReferenceMode => !UseReferenceImages;
+
+    public bool SupportsResolution => !UseReferenceImages && !SelectedModel.Contains("t2v", StringComparison.OrdinalIgnoreCase);
+
+    public bool SupportsAudio => SelectedModel.Contains("seedance-1-5-pro", StringComparison.OrdinalIgnoreCase);
+
+    public int MinDuration => SelectedModel.Contains("1-5-pro") ? 4 : 2;
+
+    public double PlannedDurationSeconds => TimeTick.ToSeconds(PlannedDurationTick);
+
+    public double GeneratedDurationSeconds => TimeTick.ToSeconds(GeneratedDurationTick);
+
+    public double ActualDurationSeconds => TimeTick.ToSeconds(ActualDurationTick);
+
+    public double EffectiveGeneratedDurationSeconds
+        => TimeTick.ToSeconds(GeneratedDurationTick > 0 ? GeneratedDurationTick : PlannedDurationTick);
+
+    public int EstimatedFrames => (int)(EffectiveGeneratedDurationSeconds * 24);
+
+    public string ResolutionWarning
+    {
+        get
+        {
+            if (UseReferenceImages)
+                return "参考图模式不支持分辨率设置";
+            if (SelectedModel.Contains("t2v", StringComparison.OrdinalIgnoreCase))
+                return "T2V 模型不支持分辨率设置";
+            return string.Empty;
+        }
+    }
+
+    public string DurationHint
+    {
+        get
+        {
+            if (SelectedModel.Contains("1-5-pro"))
+                return "Seedance 1.5 Pro 支持 4-12 秒";
+            return "支持 2-12 秒";
+        }
+    }
+
+    public string ParameterSummary
+    {
+        get
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"模式: {GetModeName()}");
+            sb.AppendLine($"宽高比: {VideoRatio}");
+            if (SupportsResolution && !string.IsNullOrWhiteSpace(VideoResolution))
+                sb.AppendLine($"分辨率: {VideoResolution}");
+            if (UseDurationMode)
+                sb.AppendLine($"时长: {EffectiveGeneratedDurationSeconds:F1} 秒");
+            else if (VideoFrames > 0)
+                sb.AppendLine($"帧数: {VideoFrames} 帧");
+            if (GenerateAudio)
+                sb.AppendLine("音频: 是");
+            if (Watermark)
+                sb.AppendLine("水印: 是");
+            if (CameraFixed)
+                sb.AppendLine("固定镜头: 是");
+            if (UseCustomSeed && Seed.HasValue)
+                sb.AppendLine($"种子: {Seed}");
+            return sb.ToString();
+        }
+    }
+
+    private string GetModeName()
+    {
+        if (UseReferenceImages) return "参考图模式";
+        if (UseFirstFrameReference && UseLastFrameReference) return "首尾帧模式";
+        if (UseFirstFrameReference) return "首帧模式";
+        return "纯文本模式";
+    }
+
+    // Events for communicating with parent ViewModel
+    public event EventHandler? DuplicateRequested;
+    public event EventHandler? DeleteRequested;
+    public event EventHandler? AiParseRequested;
+    public event EventHandler? InsertBeforeRequested;
+    public event EventHandler? InsertAfterRequested;
+    public event EventHandler? MoveUpRequested;
+    public event EventHandler? MoveDownRequested;
+    public event EventHandler? GenerateFirstFrameRequested;
+    public event EventHandler? GenerateLastFrameRequested;
+    public event EventHandler? GenerateVideoRequested;
+    public event EventHandler? EditCoreContentRequested;
+
+    // Image size options for ComboBox
+    // Note: Volcengine API requires minimum 3,686,400 pixels (e.g., 2560x1440 for 16:9)
+    public ObservableCollection<string> ImageSizeOptions { get; } = new()
+    {
+        "",
+        "2048x2048",  // 4,194,304 pixels ✓
+        "2560x1440",  // 3,686,400 pixels ✓ (16:9)
+        "1440x2560",  // 3,686,400 pixels ✓ (9:16)
+        "2304x1728",  // 3,981,312 pixels ✓ (4:3)
+        "1728x2304",  // 3,981,312 pixels ✓ (3:4)
+        "2688x1512",  // 4,064,256 pixels ✓ (16:9)
+        "1512x2688"   // 4,064,256 pixels ✓ (9:16)
+    };
+
+    public ShotItem(int shotNumber)
+    {
+        ShotNumber = shotNumber;
+        Duration = 3.5;
+        SelectedModel = string.Empty;
+        AttachAssetCollectionHandlers();
+        InitializeTtsVoiceOptions();
+    }
+
+    private void InitializeTtsVoiceOptions()
+    {
+        var modelLower = (TtsModel ?? "").ToLowerInvariant();
+        string[] voices;
+        if (modelLower.Contains("qwen") || modelLower.Contains("千问"))
+            voices = QwenVoices;
+        else if (modelLower.Contains("volc") || modelLower.Contains("火山") || modelLower.Contains("doubao"))
+            voices = VolcengineVoices;
+        else if (QwenVoices.Contains(TtsVoice))
+            voices = QwenVoices;
+        else if (VolcengineVoices.Contains(TtsVoice))
+            voices = VolcengineVoices;
+        else
+            voices = OpenAiVoices;
+        
+        TtsVoiceOptions.Clear();
+        foreach (var v in voices)
+            TtsVoiceOptions.Add(v);
+        
+        if (!voices.Contains(TtsVoice))
+            TtsVoice = voices.FirstOrDefault() ?? "alloy";
+    }
+
+    [RelayCommand]
+    private void Duplicate()
+    {
+        DuplicateRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void Delete()
+    {
+        DeleteRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void InsertBefore()
+    {
+        InsertBeforeRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void InsertAfter()
+    {
+        InsertAfterRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void MoveUp()
+    {
+        MoveUpRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void MoveDown()
+    {
+        MoveDownRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void AIParse()
+    {
+        AiParseRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void EditCoreContent()
+    {
+        EditCoreContentRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void ClearModel()
+    {
+        SelectedModel = string.Empty;
+    }
+
+    [RelayCommand]
+    private void GenerateFirstFrame()
+    {
+        GenerateFirstFrameRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void RegenerateFirstFrame()
+    {
+        GenerateFirstFrameRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void GenerateLastFrame()
+    {
+        GenerateLastFrameRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void RegenerateLastFrame()
+    {
+        GenerateLastFrameRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void GenerateVideo()
+    {
+        System.Diagnostics.Debug.WriteLine($"[ShotItem] GenerateVideo called for Shot {ShotNumber}");
+        System.Diagnostics.Debug.WriteLine($"[ShotItem] VideoPrompt: '{VideoPrompt}'");
+        System.Diagnostics.Debug.WriteLine($"[ShotItem] GenerateVideoRequested subscribers: {GenerateVideoRequested?.GetInvocationList().Length ?? 0}");
+        GenerateVideoRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void ToggleImageProfessionalParams()
+    {
+        IsImageProfessionalParamsExpanded = !IsImageProfessionalParamsExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleImageNegativePrompt()
+    {
+        IsImageNegativePromptExpanded = !IsImageNegativePromptExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleFirstFrameProfessionalParams()
+    {
+        IsFirstFrameProfessionalParamsExpanded = !IsFirstFrameProfessionalParamsExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleFirstFrameNegativePrompt()
+    {
+        IsFirstFrameNegativePromptExpanded = !IsFirstFrameNegativePromptExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleLastFrameProfessionalParams()
+    {
+        IsLastFrameProfessionalParamsExpanded = !IsLastFrameProfessionalParamsExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleLastFrameNegativePrompt()
+    {
+        IsLastFrameNegativePromptExpanded = !IsLastFrameNegativePromptExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleVideoSceneAction()
+    {
+        IsVideoSceneActionExpanded = !IsVideoSceneActionExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleVideoProfessionalParams()
+    {
+        IsVideoProfessionalParamsExpanded = !IsVideoProfessionalParamsExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleVideoNegativePrompt()
+    {
+        IsVideoNegativePromptExpanded = !IsVideoNegativePromptExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleVideoAdvancedOptions()
+    {
+        IsVideoAdvancedOptionsExpanded = !IsVideoAdvancedOptionsExpanded;
+    }
+
+    [RelayCommand]
+    private void CombineToMainPrompt()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(SceneDescription))
+            parts.Add(SceneDescription);
+        if (!string.IsNullOrWhiteSpace(ActionDescription))
+            parts.Add(ActionDescription);
+        if (!string.IsNullOrWhiteSpace(StyleDescription))
+            parts.Add(StyleDescription);
+
+        if (parts.Count > 0)
+            VideoPrompt = string.Join(", ", parts);
+    }
+
+    [RelayCommand]
+    private void GenerateRandomSeed()
+    {
+        Seed = Random.Shared.Next(0, int.MaxValue);
+    }
+
+    [RelayCommand]
+    private void ApplyPreset(string? presetName)
+    {
+        if (string.IsNullOrWhiteSpace(presetName))
+            return;
+
+        switch (presetName)
+        {
+            case "抖音竖屏":
+                VideoRatio = "9:16";
+                VideoResolution = "1080p";
+                Duration = 5;
+                UseDurationMode = true;
+                break;
+            case "横屏高清":
+                VideoRatio = "16:9";
+                VideoResolution = "1080p";
+                Duration = 8;
+                UseDurationMode = true;
+                break;
+            case "快速预览":
+                VideoRatio = "16:9";
+                VideoResolution = "480p";
+                Duration = 3;
+                UseDurationMode = true;
+                break;
+            case "方形社交":
+                VideoRatio = "1:1";
+                VideoResolution = "1080p";
+                Duration = 5;
+                UseDurationMode = true;
+                break;
+            case "电影宽屏":
+                VideoRatio = "21:9";
+                VideoResolution = "1080p";
+                Duration = 10;
+                UseDurationMode = true;
+                break;
+        }
+
+        SelectedPreset = presetName;
+    }
+
+    [RelayCommand]
+    private void SelectAsset(ShotAssetItem? asset)
+    {
+        if (asset == null || string.IsNullOrWhiteSpace(asset.FilePath))
+            return;
+
+        switch (asset.Type)
+        {
+            case ShotAssetType.FirstFrameImage:
+                FirstFrameImagePath = asset.FilePath;
+                break;
+            case ShotAssetType.LastFrameImage:
+                LastFrameImagePath = asset.FilePath;
+                break;
+            case ShotAssetType.GeneratedVideo:
+                GeneratedVideoPath = asset.FilePath;
+                break;
+        }
+
+        UpdateAssetSelections(asset.Type);
+    }
+
+    partial void OnFirstFrameImagePathChanged(string? value)
+    {
+        UpdateAssetSelections(ShotAssetType.FirstFrameImage);
+        OnPropertyChanged(nameof(CanGenerateVideo));
+        OnPropertyChanged(nameof(CanGenerateVideoNow));
+    }
+
+    partial void OnLastFrameImagePathChanged(string? value)
+    {
+        UpdateAssetSelections(ShotAssetType.LastFrameImage);
+        OnPropertyChanged(nameof(CanGenerateVideo));
+        OnPropertyChanged(nameof(CanGenerateVideoNow));
+    }
+
+    partial void OnGeneratedVideoPathChanged(string? value)
+    {
+        UpdateAssetSelections(ShotAssetType.GeneratedVideo);
+        OnPropertyChanged(nameof(VideoOutputPath));
+        OnPropertyChanged(nameof(VideoThumbnailPath));
+    }
+
+    partial void OnIsVideoGeneratingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanGenerateVideoNow));
+    }
+
+    partial void OnUseReferenceImagesChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsNotReferenceMode));
+        OnPropertyChanged(nameof(SupportsResolution));
+        OnPropertyChanged(nameof(ResolutionWarning));
+    }
+
+    partial void OnSelectedModelChanged(string value)
+    {
+        OnPropertyChanged(nameof(SupportsResolution));
+        OnPropertyChanged(nameof(SupportsAudio));
+        OnPropertyChanged(nameof(MinDuration));
+        OnPropertyChanged(nameof(ResolutionWarning));
+        OnPropertyChanged(nameof(DurationHint));
+    }
+
+    partial void OnDurationChanged(double value)
+    {
+        if (!_suppressTickSync)
+        {
+            _suppressTickSync = true;
+            var ticks = TimeTick.FromSeconds(value);
+            if (PlannedDurationTick != ticks)
+                PlannedDurationTick = ticks;
+            if (TimingSource == ShotTimingSource.ShotPlanned)
+                ActualDurationTick = ticks;
+            if (GeneratedDurationTick == 0)
+                GeneratedDurationTick = ticks;
+            _suppressTickSync = false;
+        }
+
+        OnPropertyChanged(nameof(PlannedDurationSeconds));
+        OnPropertyChanged(nameof(GeneratedDurationSeconds));
+        OnPropertyChanged(nameof(ActualDurationSeconds));
+        OnPropertyChanged(nameof(EffectiveGeneratedDurationSeconds));
+        OnPropertyChanged(nameof(EstimatedFrames));
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnPlannedDurationTickChanged(long value)
+    {
+        if (_suppressTickSync)
+            return;
+
+        _suppressTickSync = true;
+        Duration = TimeTick.ToSeconds(value);
+        if (TimingSource == ShotTimingSource.ShotPlanned)
+            ActualDurationTick = value;
+        if (GeneratedDurationTick == 0)
+            GeneratedDurationTick = value;
+        _suppressTickSync = false;
+
+        OnPropertyChanged(nameof(PlannedDurationSeconds));
+        OnPropertyChanged(nameof(EffectiveGeneratedDurationSeconds));
+        OnPropertyChanged(nameof(EstimatedFrames));
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnGeneratedDurationTickChanged(long value)
+    {
+        OnPropertyChanged(nameof(GeneratedDurationSeconds));
+        OnPropertyChanged(nameof(EffectiveGeneratedDurationSeconds));
+        OnPropertyChanged(nameof(EstimatedFrames));
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnActualDurationTickChanged(long value)
+    {
+        OnPropertyChanged(nameof(ActualDurationSeconds));
+    }
+
+    partial void OnTimingSourceChanged(ShotTimingSource value)
+    {
+        if (value == ShotTimingSource.ShotPlanned)
+        {
+            ActualDurationTick = PlannedDurationTick;
+        }
+    }
+
+    partial void OnVideoRatioChanged(string value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnVideoResolutionChanged(string value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnVideoFramesChanged(int value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnGenerateAudioChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnWatermarkChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnCameraFixedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnSeedChanged(int? value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnUseCustomSeedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnUseDurationModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnUseFirstFrameReferenceChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    partial void OnUseLastFrameReferenceChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ParameterSummary));
+    }
+
+    private void UpdateAssetSelections(ShotAssetType type)
+    {
+        ObservableCollection<ShotAssetItem>? list = type switch
+        {
+            ShotAssetType.FirstFrameImage => FirstFrameAssets,
+            ShotAssetType.LastFrameImage => LastFrameAssets,
+            ShotAssetType.GeneratedVideo => VideoAssets,
+            _ => null
+        };
+
+        if (list == null)
+            return;
+
+        var selectedPath = type switch
+        {
+            ShotAssetType.FirstFrameImage => FirstFrameImagePath,
+            ShotAssetType.LastFrameImage => LastFrameImagePath,
+            ShotAssetType.GeneratedVideo => GeneratedVideoPath,
+            _ => null
+        };
+
+        foreach (var item in list)
+            item.IsSelected = !string.IsNullOrWhiteSpace(selectedPath) && string.Equals(item.FilePath, selectedPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void AttachAssetCollectionHandlers()
+    {
+        _firstFrameAssets.CollectionChanged += OnFirstFrameAssetsCollectionChanged;
+        _lastFrameAssets.CollectionChanged += OnLastFrameAssetsCollectionChanged;
+        _videoAssets.CollectionChanged += OnVideoAssetsCollectionChanged;
+    }
+
+    private void OnFirstFrameAssetsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(FirstFrameAssetsOrdered));
+
+    private void OnLastFrameAssetsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(LastFrameAssetsOrdered));
+
+    private void OnVideoAssetsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(VideoAssetsOrdered));
+
+    private static IEnumerable<ShotAssetItem> OrderAssetsByNewest(IEnumerable<ShotAssetItem> assets)
+        => assets.OrderByDescending(asset => asset?.CreatedAt ?? DateTimeOffset.MinValue);
+
+    partial void OnFirstFrameAssetsChanging(ObservableCollection<ShotAssetItem> value)
+    {
+        if (_firstFrameAssets != null)
+            _firstFrameAssets.CollectionChanged -= OnFirstFrameAssetsCollectionChanged;
+    }
+
+    partial void OnFirstFrameAssetsChanged(ObservableCollection<ShotAssetItem> value)
+    {
+        if (value != null)
+            value.CollectionChanged += OnFirstFrameAssetsCollectionChanged;
+        OnPropertyChanged(nameof(FirstFrameAssetsOrdered));
+    }
+
+    partial void OnLastFrameAssetsChanging(ObservableCollection<ShotAssetItem> value)
+    {
+        if (_lastFrameAssets != null)
+            _lastFrameAssets.CollectionChanged -= OnLastFrameAssetsCollectionChanged;
+    }
+
+    partial void OnLastFrameAssetsChanged(ObservableCollection<ShotAssetItem> value)
+    {
+        if (value != null)
+            value.CollectionChanged += OnLastFrameAssetsCollectionChanged;
+        OnPropertyChanged(nameof(LastFrameAssetsOrdered));
+    }
+
+    partial void OnVideoAssetsChanging(ObservableCollection<ShotAssetItem> value)
+    {
+        if (_videoAssets != null)
+            _videoAssets.CollectionChanged -= OnVideoAssetsCollectionChanged;
+    }
+
+    partial void OnVideoAssetsChanged(ObservableCollection<ShotAssetItem> value)
+    {
+        if (value != null)
+            value.CollectionChanged += OnVideoAssetsCollectionChanged;
+        OnPropertyChanged(nameof(VideoAssetsOrdered));
+    }
+
+    /// <summary>
+    /// 公开触发属性变更通知
+    /// </summary>
+    public void NotifyPropertyChanged(string propertyName) => OnPropertyChanged(propertyName);
+
+    /// <summary>
+    /// 批量更新 AI 解析结果，避免多次触发 PropertyChanged 事件
+    /// </summary>
+    public void ApplyAiAnalysisResult(AiShotDescription result)
+    {
+        try
+        {
+            // 注意：CommunityToolkit.Mvvm 的 ObservableObject 没有内置的暂停通知机制
+            // 所以我们直接更新字段，然后手动触发一次通知
+
+            // 时长（如果 AI 提供了）
+            if (result.DurationSeconds.HasValue && result.DurationSeconds.Value > 0)
+                Duration = result.DurationSeconds.Value;
+
+            // 基本信息
+            if (!string.IsNullOrWhiteSpace(result.ShotType))
+                ShotType = result.ShotType;
+
+            if (!string.IsNullOrWhiteSpace(result.CoreContent))
+                CoreContent = result.CoreContent;
+
+            if (!string.IsNullOrWhiteSpace(result.ActionCommand))
+                ActionCommand = result.ActionCommand;
+
+            if (!string.IsNullOrWhiteSpace(result.SceneSettings))
+                SceneSettings = result.SceneSettings;
+
+            // 首帧和尾帧提示词
+            if (!string.IsNullOrWhiteSpace(result.FirstFramePrompt))
+                FirstFramePrompt = result.FirstFramePrompt;
+
+            if (!string.IsNullOrWhiteSpace(result.LastFramePrompt))
+                LastFramePrompt = result.LastFramePrompt;
+
+            // 图片专业参数 - 应用到首帧和尾帧（AI 返回的是通用参数）
+            if (!string.IsNullOrWhiteSpace(result.Composition))
+            {
+                FirstFrameComposition = result.Composition;
+                LastFrameComposition = result.Composition;
+                Composition = result.Composition; // 兼容旧版
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.LightingType))
+            {
+                FirstFrameLightingType = result.LightingType;
+                LastFrameLightingType = result.LightingType;
+                LightingType = result.LightingType; // 兼容旧版
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.TimeOfDay))
+            {
+                FirstFrameTimeOfDay = result.TimeOfDay;
+                LastFrameTimeOfDay = result.TimeOfDay;
+                TimeOfDay = result.TimeOfDay; // 兼容旧版
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.ColorStyle))
+            {
+                FirstFrameColorStyle = result.ColorStyle;
+                LastFrameColorStyle = result.ColorStyle;
+                ColorStyle = result.ColorStyle; // 兼容旧版
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.NegativePrompt))
+            {
+                FirstFrameNegativePrompt = result.NegativePrompt;
+                LastFrameNegativePrompt = result.NegativePrompt;
+                NegativePrompt = result.NegativePrompt; // 兼容旧版
+            }
+
+            // 图片尺寸
+            if (!string.IsNullOrWhiteSpace(result.ImageSize))
+                ImageSize = result.ImageSize;
+
+            // 视频参数
+            if (!string.IsNullOrWhiteSpace(result.VideoPrompt))
+                VideoPrompt = result.VideoPrompt;
+
+            if (!string.IsNullOrWhiteSpace(result.SceneDescription))
+                SceneDescription = result.SceneDescription;
+
+            if (!string.IsNullOrWhiteSpace(result.ActionDescription))
+                ActionDescription = result.ActionDescription;
+
+            if (!string.IsNullOrWhiteSpace(result.StyleDescription))
+                StyleDescription = result.StyleDescription;
+
+            if (!string.IsNullOrWhiteSpace(result.CameraMovement))
+                CameraMovement = result.CameraMovement;
+
+            if (!string.IsNullOrWhiteSpace(result.ShootingStyle))
+                ShootingStyle = result.ShootingStyle;
+
+            if (!string.IsNullOrWhiteSpace(result.VideoEffect))
+                VideoEffect = result.VideoEffect;
+
+            if (!string.IsNullOrWhiteSpace(result.VideoNegativePrompt))
+                VideoNegativePrompt = result.VideoNegativePrompt;
+
+            if (!string.IsNullOrWhiteSpace(result.VideoResolution))
+                VideoResolution = result.VideoResolution;
+
+            if (!string.IsNullOrWhiteSpace(result.VideoRatio))
+                VideoRatio = result.VideoRatio;
+        }
+        catch
+        {
+            // 确保不会因为异常导致状态不一致
+        }
+    }
+
+    // ========== TTS Audio Properties ==========
+
+    [ObservableProperty]
+    private string _audioText = string.Empty;
+
+    [ObservableProperty]
+    private string? _generatedAudioPath;
+
+    [ObservableProperty]
+    private string _ttsVoice = "alloy";
+
+    [ObservableProperty]
+    private double _ttsSpeed = 1.0;
+
+    [ObservableProperty]
+    private string _ttsModel = string.Empty;
+
+    [ObservableProperty]
+    private double _audioDuration;
+
+    [ObservableProperty]
+    private bool _generateAudioEnabled;
+
+    [ObservableProperty]
+    private bool _isGeneratingAudio;
+
+    [ObservableProperty]
+    private string _audioStatusMessage = string.Empty;
+
+    // TTS voice options - dynamic based on model
+    private static readonly string[] OpenAiVoices = { "alloy", "echo", "fable", "onyx", "nova", "shimmer" };
+    private static readonly string[] QwenVoices = { "Cherry", "alexa", "arwen", "bethany", "daniel", "donna", "elisabeth", "emily", "emma", "erika", "gabriel", "geralt", "giulia", "hani", "heather", "helen", "jacob", "jessica", "jiaxi", "jinli", "julie", "kanying", "lily", "lucas", "marc", "maria", "mason", "meng", "michael", "mila", "ray", "rachel", "richard", "riley", "rose", "sarah", "seth", "shawn", "sophia", "stefan", "stella", "summer", "taylor", "thomas", "tom", "xiaobing", "xiaoxiao", "xiaoyi", "yating", "yunjian", "yunxi", "yunxia", "yunyang", "zhenda", "zhuoming" };
+    private static readonly string[] VolcengineVoices = { "zh_female_vv_yingjian_soungis", "zh_male_vv_yingjian_soungis", "zh_female_vv_shengcheng_jingying", "zh_male_vv_shengcheng_jingying", "zh_female_vv_shichang_jingying", "zh_male_vv_shichang_jingying", "zh_female_vv_xiaoyuan_jingying", "zh_male_vv_xiaoyuan_jingying", "zh_female_vv_badao_jingying", "zh_male_vv_badao_jingying", "zh_female_vv_changjiang_jingying", "zh_male_vv_changjiang_jingying", "zh_female_vv_zhongjiao_jingying", "zh_male_vv_zhongjiao_jingying", "zh_female_vv_yujie_jingying", "zh_male_vv_yujie_jingying" };
+
+    public static IReadOnlyList<string> TtsModelOptions { get; } = new[]
+    {
+        "gpt-4o-mini-tts",
+        "gpt-4o-tts-2024-05-13",
+        "qwen3-tts-instruct-flash",
+        "qwen3-tts-instruct-flash-2026-01-26",
+        "qwen-tts",
+        "qwen-tts-latest",
+        "doubao-e2-audio-160k",
+        "doubao-e2-audio-32k"
+    };
+
+    public static IReadOnlyList<string> GetVoiceOptionsForModel(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model)) return OpenAiVoices;
+        var modelLower = model.ToLowerInvariant();
+        if (modelLower.Contains("qwen") || modelLower.Contains("千问")) return QwenVoices;
+        if (modelLower.Contains("volc") || modelLower.Contains("火山") || modelLower.Contains("doubao")) return VolcengineVoices;
+        return OpenAiVoices;
+    }
+
+    public static string GetVoiceDescription(string voice, string? model)
+    {
+        var voices = GetVoiceOptionsForModel(model);
+        if (!voices.Contains(voice)) return voice;
+        return voice;
+    }
+
+    public string VoiceHelpText
+    {
+        get
+        {
+            var modelLower = (TtsModel ?? "").ToLowerInvariant();
+            if (modelLower.Contains("qwen") || modelLower.Contains("千问"))
+                return "千问 TTS 支持多种音色，如 alexa, emily, jessica 等";
+            if (modelLower.Contains("volc") || modelLower.Contains("火山") || modelLower.Contains("doubao"))
+                return "火山引擎 TTS 支持多种音色，如 zh_female_vv_yingjian_soungis 等";
+            return "OpenAI TTS 支持音色：alloy, echo, fable, onyx, nova, shimmer";
+        }
+    }
+
+    partial void OnTtsModelChanged(string value)
+    {
+        var newOptions = GetVoiceOptionsForModel(value);
+        TtsVoiceOptions.Clear();
+        foreach (var opt in newOptions)
+        {
+            TtsVoiceOptions.Add(opt);
+        }
+        if (!string.IsNullOrEmpty(TtsVoice) && !newOptions.Contains(TtsVoice))
+        {
+            TtsVoice = newOptions.FirstOrDefault() ?? "alloy";
+        }
+        OnPropertyChanged(nameof(VoiceHelpText));
+    }
+
+    partial void OnTtsVoiceChanged(string value)
+    {
+        OnPropertyChanged(nameof(VoiceHelpText));
+    }
+
+    public ObservableCollection<string> TtsVoiceOptions { get; } = new(OpenAiVoices);
+
+    // Events for TTS
+    public event EventHandler? GenerateAudioRequested;
+    public event EventHandler? PlayAudioRequested;
+    public event EventHandler? DeleteAudioRequested;
+
+    [RelayCommand]
+    private void RequestGenerateAudio()
+    {
+        GenerateAudioRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void PlayAudio()
+    {
+        PlayAudioRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void DeleteAudio()
+    {
+        DeleteAudioRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool HasGeneratedAudio => !string.IsNullOrWhiteSpace(GeneratedAudioPath) && File.Exists(GeneratedAudioPath);
+}

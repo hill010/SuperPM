@@ -43,7 +43,7 @@ export function TopBar() {
           <>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-dim">
               <CreditCard className="w-4 h-4 text-accent" />
-              <span className="text-sm font-medium text-accent">{user.credits.toLocaleString()} 积分</span>
+              <span className="text-sm font-medium text-accent">{user.credits?.toLocaleString() ?? 0} 积分</span>
             </div>
             <div className="relative" ref={menuRef}>
               <button

@@ -1,0 +1,353 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Logging;
+using Storyboard.Application.Abstractions;
+using Storyboard.Application.Services;
+using Storyboard.Domain.Entities;
+using Storyboard.Infrastructure.Media;
+using Storyboard.Messages;
+using Storyboard.Models;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Storyboard.ViewModels.Generation;
+
+/// <summary>
+/// 视频生成 ViewModel - 负责视频生成
+/// </summary>
+public partial class VideoGenerationViewModel : ObservableObject
+{
+    private readonly IVideoGenerationService _videoGenerationService;
+    private readonly IJobQueueService _jobQueue;
+    private readonly IMessenger _messenger;
+    private readonly ILogger<VideoGenerationViewModel> _logger;
+    private readonly StoragePathService _storagePathService;
+
+    [ObservableProperty]
+    private int _generatedVideosCount;
+
+    public VideoGenerationViewModel(
+        IVideoGenerationService videoGenerationService,
+        IJobQueueService jobQueue,
+        IMessenger messenger,
+        ILogger<VideoGenerationViewModel> logger,
+        StoragePathService storagePathService)
+    {
+        _videoGenerationService = videoGenerationService;
+        _jobQueue = jobQueue;
+        _messenger = messenger;
+        _logger = logger;
+        _storagePathService = storagePathService;
+
+        // 订阅视频生成请求消息
+        _messenger.Register<VideoGenerationRequestedMessage>(this, OnVideoGenerationRequested);
+    }
+
+    [RelayCommand]
+    private async Task BatchGenerateVideos()
+    {
+        _logger.LogInformation("开始批量生成视频");
+
+        // 查询所有镜头
+        var query = new GetAllShotsQuery();
+        _messenger.Send(query);
+        var shots = query.Shots;
+
+        if (shots == null || shots.Count == 0)
+        {
+            _logger.LogWarning("没有镜头可生成视频");
+            return;
+        }
+
+        var queuedCount = 0;
+        foreach (var shot in shots)
+        {
+            // 跳过已经生成视频的镜头
+            if (!string.IsNullOrWhiteSpace(shot.GeneratedVideoPath) && System.IO.File.Exists(shot.GeneratedVideoPath))
+            {
+                _logger.LogInformation("跳过已生成视频的镜头: Shot {ShotNumber}", shot.ShotNumber);
+                continue;
+            }
+
+            // 跳过正在生成的镜头
+            if (shot.IsVideoGenerating)
+            {
+                _logger.LogInformation("跳过正在生成的镜头: Shot {ShotNumber}", shot.ShotNumber);
+                continue;
+            }
+
+            // 发送视频生成请求消息
+            _messenger.Send(new VideoGenerationRequestedMessage(shot));
+            queuedCount++;
+        }
+
+        _logger.LogInformation("批量生成视频: 已加入队列 {Count} 个镜头", queuedCount);
+    }
+
+    private async void OnVideoGenerationRequested(object recipient, VideoGenerationRequestedMessage message)
+    {
+        var shot = message.Shot;
+
+        _logger.LogInformation("收到视频生成请求: Shot {ShotNumber}, VideoPrompt: '{VideoPrompt}'", shot.ShotNumber, shot.VideoPrompt);
+
+        try
+        {
+            // 自动检测并启用参考图
+            AutoDetectAndEnableReferenceImages(shot);
+
+            shot.VideoGenerationMessage = null;
+            shot.IsVideoGenerating = true;
+
+            var prompt = shot.VideoPrompt;
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                _logger.LogWarning("视频提示词为空，无法生成视频: Shot {ShotNumber}", shot.ShotNumber);
+                shot.VideoGenerationMessage = "请先填写视频提示词，才能生成视频。";
+
+                // 重置生成状态
+                shot.IsVideoGenerating = false;
+                return;
+            }
+
+            _logger.LogInformation("开始生成视频: Shot {ShotNumber}, Prompt: '{Prompt}'", shot.ShotNumber, prompt);
+
+            // 创建视频生成任务
+            _jobQueue.Enqueue(
+                GenerationJobType.Video,
+                shot.ShotNumber,
+                async (ct, progress) =>
+                {
+                    try
+                    {
+                        _logger.LogInformation("视频生成任务开始执行: Shot {ShotNumber}", shot.ShotNumber);
+                        _logger.LogInformation("视频生成参数 - VideoPrompt: '{VideoPrompt}', Duration: {Duration}, Ratio: {Ratio}, Resolution: {Resolution}",
+                            shot.VideoPrompt, shot.EffectiveGeneratedDurationSeconds, shot.VideoRatio, shot.VideoResolution);
+                        _logger.LogInformation("视频生成模式 - UseFirstFrameReference: {UseFirstFrame}, UseLastFrameReference: {UseLastFrame}, UseReferenceImages: {UseReference}",
+                            shot.UseFirstFrameReference, shot.UseLastFrameReference, shot.UseReferenceImages);
+
+                        var videoPath = await _videoGenerationService.GenerateVideoAsync(
+                            shot,
+                            outputDirectory: null,
+                            filePrefix: $"shot_{shot.ShotNumber:000}_video",
+                            cancellationToken: ct);
+
+                        _logger.LogInformation("视频生成服务返回路径: {VideoPath}", videoPath);
+
+                        if (!string.IsNullOrWhiteSpace(videoPath))
+                        {
+                            // 生成视频缩略图
+                            var thumbnailPath = await TryCreateVideoThumbnailAsync(videoPath, ct);
+
+                            // 在 UI 线程上更新属性
+                            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                // 保存视频路径
+                                shot.GeneratedVideoPath = videoPath;
+
+                                // 添加到资产列表
+                                var asset = new ShotAssetItem
+                                {
+                                    FilePath = videoPath,
+                                    ThumbnailPath = null,
+                                    VideoThumbnailPath = thumbnailPath,
+                                    Type = ShotAssetType.GeneratedVideo,
+                                    CreatedAt = DateTime.Now,
+                                    IsSelected = true
+                                };
+
+                                shot.VideoAssets.Add(asset);
+
+                                GeneratedVideosCount++;
+                            });
+
+                            _messenger.Send(new VideoGenerationCompletedMessage(shot, true, videoPath));
+                            _logger.LogInformation("视频生成成功: Shot {ShotNumber}", shot.ShotNumber);
+                            shot.VideoGenerationMessage = null;
+                        }
+                        else
+                        {
+                            shot.VideoGenerationMessage = "视频生成失败，请稍后重试。";
+                            _messenger.Send(new VideoGenerationCompletedMessage(shot, false, null));
+                            _logger.LogWarning("视频生成失败: Shot {ShotNumber}", shot.ShotNumber);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "视频生成任务执行异常: Shot {ShotNumber}, 错误信息: {Message}", shot.ShotNumber, ex.Message);
+                        _messenger.Send(new VideoGenerationCompletedMessage(shot, false, null));
+                        shot.VideoGenerationMessage = $"视频生成失败：{ex.Message}";
+                        throw; // 重新抛出异常，让任务队列知道任务失败
+                    }
+                    finally
+                    {
+                        // 任务完成后在 UI 线程上重置生成状态
+                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            shot.IsVideoGenerating = false;
+                        });
+                        _logger.LogInformation("视频生成状态已重置: Shot {ShotNumber}", shot.ShotNumber);
+                    }
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "视频生成异常: Shot {ShotNumber}", shot.ShotNumber);
+            _messenger.Send(new VideoGenerationCompletedMessage(shot, false, null));
+            shot.VideoGenerationMessage = $"视频生成失败：{ex.Message}";
+
+            // 异常时重置生成状态
+            shot.IsVideoGenerating = false;
+        }
+    }
+
+    /// <summary>
+    /// 自动检测可用的参考图并启用对应的标志
+    /// </summary>
+    private void AutoDetectAndEnableReferenceImages(ShotItem shot)
+    {
+        var hasFirstFrame = !string.IsNullOrWhiteSpace(shot.FirstFrameImagePath)
+            && File.Exists(shot.FirstFrameImagePath);
+        var hasLastFrame = !string.IsNullOrWhiteSpace(shot.LastFrameImagePath)
+            && File.Exists(shot.LastFrameImagePath);
+
+        _logger.LogInformation("参考图检测: Shot {ShotNumber}, 首帧={HasFirst}, 尾帧={HasLast}",
+            shot.ShotNumber, hasFirstFrame, hasLastFrame);
+
+        // 如果有首帧图片且用户没有明确禁用，则自动启用
+        if (hasFirstFrame && !shot.UseFirstFrameReference)
+        {
+            _logger.LogInformation("自动启用首帧参考: Shot {ShotNumber}", shot.ShotNumber);
+            shot.UseFirstFrameReference = true;
+        }
+
+        // 如果有尾帧图片且用户没有明确禁用，则自动启用
+        if (hasLastFrame && !shot.UseLastFrameReference)
+        {
+            _logger.LogInformation("自动启用尾帧参考: Shot {ShotNumber}", shot.ShotNumber);
+            shot.UseLastFrameReference = true;
+        }
+
+        // 如果没有对应的参考图，确保标志为 false
+        if (!hasFirstFrame && shot.UseFirstFrameReference)
+        {
+            _logger.LogWarning("首帧参考已启用但首帧图片不存在，自动禁用: Shot {ShotNumber}", shot.ShotNumber);
+            shot.UseFirstFrameReference = false;
+        }
+
+        if (!hasLastFrame && shot.UseLastFrameReference)
+        {
+            _logger.LogWarning("尾帧参考已启用但尾帧图片不存在，自动禁用: Shot {ShotNumber}", shot.ShotNumber);
+            shot.UseLastFrameReference = false;
+        }
+    }
+
+    private string BuildVideoPrompt(ShotItem shot, string basePrompt)
+    {
+        var parts = new List<string> { basePrompt };
+
+        if (!string.IsNullOrWhiteSpace(shot.CameraMovement))
+            parts.Add(shot.CameraMovement);
+        if (!string.IsNullOrWhiteSpace(shot.ShootingStyle))
+            parts.Add(shot.ShootingStyle);
+        if (!string.IsNullOrWhiteSpace(shot.VideoEffect))
+            parts.Add(shot.VideoEffect);
+
+        return string.Join(", ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+    }
+
+    /// <summary>
+    /// 为视频生成缩略图
+    /// </summary>
+    private async Task<string?> TryCreateVideoThumbnailAsync(string videoPath, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(videoPath) || !File.Exists(videoPath))
+            return null;
+
+        try
+        {
+            // 获取项目输出目录
+            var query = new GetCurrentProjectIdQuery();
+            _messenger.Send(query);
+            var projectId = query.ProjectId ?? "temp";
+
+            var outputDir = _storagePathService.GetProjectVideoThumbnailsDirectory(projectId);
+            Directory.CreateDirectory(outputDir);
+
+            var baseName = Path.GetFileNameWithoutExtension(videoPath);
+            var thumbPath = Path.Combine(outputDir, $"{baseName}_thumb.jpg");
+
+            // 使用 FFmpeg 提取视频第一帧作为缩略图
+            var args = $"-y -hide_banner -loglevel error -ss 0.2 -i \"{videoPath}\" -frames:v 1 -q:v 2 \"{thumbPath}\"";
+            var (exitCode, stdout, stderr) = await RunProcessCaptureAsync(
+                FfmpegLocator.GetFfmpegPath(),
+                args,
+                cancellationToken);
+
+            if (exitCode != 0 || !File.Exists(thumbPath))
+            {
+                _logger.LogWarning("视频缩略图生成失败: {Error}", stderr);
+                return null;
+            }
+
+            _logger.LogInformation("视频缩略图生成成功: {ThumbnailPath}", thumbPath);
+            return thumbPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "生成视频缩略图时发生异常: {VideoPath}", videoPath);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 运行外部进程并捕获输出
+    /// </summary>
+    private static async Task<(int ExitCode, string Stdout, string Stderr)> RunProcessCaptureAsync(
+        string fileName,
+        string arguments,
+        CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
+        };
+
+        using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        var stdout = new StringBuilder();
+        var stderr = new StringBuilder();
+
+        proc.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+                stdout.AppendLine(e.Data);
+        };
+        proc.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+                stderr.AppendLine(e.Data);
+        };
+
+        if (!proc.Start())
+            throw new InvalidOperationException($"无法启动进程: {fileName}");
+
+        proc.BeginOutputReadLine();
+        proc.BeginErrorReadLine();
+
+        await proc.WaitForExitAsync(cancellationToken);
+        return (proc.ExitCode, stdout.ToString(), stderr.ToString());
+    }
+}

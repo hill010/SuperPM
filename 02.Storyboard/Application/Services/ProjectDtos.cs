@@ -1,0 +1,131 @@
+using Storyboard.Domain.Entities;
+
+namespace Storyboard.Application.Services;
+
+public sealed record ProjectSummary(
+    string Id,
+    string Name,
+    DateTimeOffset UpdatedAt,
+    int TotalShots,
+    int CompletedShots,
+    int HasImages);
+
+public sealed record ProjectState(
+    string Id,
+    string Name,
+    string? SelectedVideoPath,
+    bool HasVideoFile,
+    string VideoFileDuration,
+    string VideoFileResolution,
+    string VideoFileFps,
+    int ExtractModeIndex,
+    int FrameCount,
+    double TimeInterval,
+    double DetectionSensitivity,
+    IReadOnlyList<ShotState> Shots,
+    // 创作意图
+    string? CreativeGoal = null,
+    string? TargetAudience = null,
+    string? VideoTone = null,
+    string? KeyMessage = null,
+    // Timeline sync configuration
+    SyncMode SyncMode = SyncMode.Bidirectional,
+    double FrameRate = 30.0,
+    TimebaseUnit TimebaseUnit = TimebaseUnit.Milliseconds);
+
+public sealed record ShotState(
+    int ShotNumber,
+    double Duration,
+    double StartTime,
+    double EndTime,
+    string FirstFramePrompt,
+    string LastFramePrompt,
+    string ShotType,
+    string CoreContent,
+    string ActionCommand,
+    string SceneSettings,
+    string SelectedModel,
+    string? FirstFrameImagePath,
+    string? LastFrameImagePath,
+    string? GeneratedVideoPath,
+    string? MaterialThumbnailPath,
+    string? MaterialFilePath,
+    IReadOnlyList<ShotAssetState> Assets,
+    // Material info
+    string MaterialResolution = "",
+    string MaterialFileSize = "",
+    string MaterialFormat = "",
+    string MaterialColorTone = "",
+    string MaterialBrightness = "",
+    // Image generation parameters
+    string ImageSize = "",
+    string NegativePrompt = "",
+    // Image professional parameters (legacy, kept for backward compatibility)
+    string AspectRatio = "",
+    string LightingType = "",
+    string TimeOfDay = "",
+    string Composition = "",
+    string ColorStyle = "",
+    string LensType = "",
+    // First frame professional parameters
+    string FirstFrameComposition = "",
+    string FirstFrameLightingType = "",
+    string FirstFrameTimeOfDay = "",
+    string FirstFrameColorStyle = "",
+    string FirstFrameLensType = "",
+    string FirstFrameNegativePrompt = "",
+    string FirstFrameImageSize = "",
+    string FirstFrameAspectRatio = "",
+    string FirstFrameSelectedModel = "",
+    int? FirstFrameSeed = null,
+    // Last frame professional parameters
+    string LastFrameComposition = "",
+    string LastFrameLightingType = "",
+    string LastFrameTimeOfDay = "",
+    string LastFrameColorStyle = "",
+    string LastFrameLensType = "",
+    string LastFrameNegativePrompt = "",
+    string LastFrameImageSize = "",
+    string LastFrameAspectRatio = "",
+    string LastFrameSelectedModel = "",
+    int? LastFrameSeed = null,
+    // Video generation parameters
+    string VideoPrompt = "",
+    string SceneDescription = "",
+    string ActionDescription = "",
+    string StyleDescription = "",
+    string VideoNegativePrompt = "",
+    // Video professional parameters
+    string CameraMovement = "",
+    string ShootingStyle = "",
+    string VideoEffect = "",
+    string VideoResolution = "720p",
+    string VideoRatio = "16:9",
+    int VideoFrames = 0,
+    bool UseFirstFrameReference = true,
+    bool UseLastFrameReference = false,
+    int? Seed = null,
+    bool CameraFixed = false,
+    bool Watermark = false,
+    long PlannedDurationTick = 0,
+    long GeneratedDurationTick = 0,
+    long ActualDurationTick = 0,
+    ShotTimingSource TimingSource = ShotTimingSource.ShotPlanned,
+    bool IsSyncedToTimeline = true,
+    bool IsDurationLocked = false,
+    // TTS fields
+    string AudioText = "",
+    string? GeneratedAudioPath = null,
+    string TtsVoice = "alloy",
+    double TtsSpeed = 1.0,
+    string TtsModel = "",
+    double AudioDuration = 0);
+
+public sealed record ShotAssetState(
+    Domain.Entities.ShotAssetType Type,
+    string FilePath,
+    string? ThumbnailPath,
+    string? VideoThumbnailPath,
+    string? Prompt,
+    string? Model,
+    DateTimeOffset CreatedAt);

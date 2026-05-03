@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Program Files/dotnet/dotnet\" --version)",
+      "Bash(powershell.exe -Command \"winget install Microsoft.DotNet.SDK.8 --accept-package-agreements --accept-source-agreements\")",
+      "Bash(curl -s http://localhost:3000/assets)",
+      "Bash(curl -s http://localhost:3000/project/proj-001)"
+    ]
+  }
+}

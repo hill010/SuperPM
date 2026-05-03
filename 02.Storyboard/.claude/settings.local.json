@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet ef migrations list:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef migrations remove:*)",
+      "Bash(dir /b \"d:\\\\project\\\\分镜大师\\\\bin\\\\Debug\\\\net8.0\")",
+      "Bash(findstr:*)",
+      "Bash(find:*)",
+      "Bash(curl:*)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(sqlite3:*)",
+      "Bash(dir:*)",
+      "Bash(copy:*)",
+      "Bash(.PublishSingleFile.bat)",
+      "Bash(cmd /c \"cd /d d:\\\\project\\\\分镜大师 && echo Y | PublishSingleFile.bat\")",
+      "Bash(powershell -Command \"Get-Content scripts/quick-release.ps1 -Encoding UTF8 | Select-String -Pattern ''鐐瑰嚮'' -Context 2,2\")",
+      "Bash(powershell -Command:*)",
+      "Bash(iconv:*)",
+      "Bash(powershell -NoProfile -Command:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(where:*)",
+      "Bash(dotnet publish:*)",
+      "Bash(Select-Object -First 50)",
+      "Bash(test:*)",
+      "Bash(Get-ChildItem -Path \"d:\\\\project\\\\分镜大师\" -Recurse -Directory -Name)",
+      "Bash(Select-Object -First 20)",
+      "Bash(du:*)",
+      "Bash(dotnet list:*)",
+      "Bash(taskkill:*)",
+      "Bash(ls:*)",
+      "Bash(tasklist:*)",
+      "Bash(dotnet run)",
+      "Bash(git restore App/Views/ShotListView.axaml)",
+      "Bash(dotnet clean:*)",
+      "Bash(git checkout:*)",
+      "Bash(ping:*)",
+      "Read(//c/Users/Administrator/AppData/Local/Storyboard/**)",
+      "WebFetch(domain:docs.newapi.pro)",
+      "Bash(xargs grep:*)",
+      "WebSearch"
+    ],
+    "additionalDirectories": [
+      "d:\\project\\分镜大师"
+    ]
+  }
+}

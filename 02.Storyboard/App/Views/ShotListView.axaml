@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Storyboard.ViewModels"
+             xmlns:m="using:Storyboard.Models"
+             xmlns:v="using:Storyboard.Views"
+             x:Class="Storyboard.Views.ShotListView"
+             x:DataType="vm:MainViewModel">
+
+    <Grid Background="#0a0a0a">
+        <!-- Shot Cards -->
+        <Grid>
+            <!-- Empty State -->
+            <Border IsVisible="{Binding HasShots, Converter={StaticResource BoolNot}}">
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="16">
+                    <PathIcon Data="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                              Width="64"
+                              Height="64"
+                              Foreground="#27272a"
+                              Opacity="0.3" />
+                    <TextBlock Text="暂无分镜"
+                               FontSize="16"
+                               Foreground="#71717a"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="导入视频抽帧，或手动创建分镜"
+                               FontSize="14"
+                               Foreground="#52525b"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- List View -->
+            <ScrollViewer x:Name="ListScrollViewer"
+                          Padding="8,10,8,0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="ListItemsControl" ItemsSource="{Binding Shots}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="40" Margin="0,0,0,50" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:ShotItem">
+                            <v:ShotCardView DataContext="{Binding}"                                   
+                                            ClipToBounds="False" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Drag overlay (ghost + indicators) -->
+            <Canvas x:Name="DragOverlay" IsHitTestVisible="False">
+                <Border x:Name="DragTargetHighlight"
+                        Opacity="0"
+                        Background="Transparent"
+                        BorderBrush="#8b5cf6"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                    <Border.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.10" />
+                        </Transitions>
+                    </Border.Transitions>
+                </Border>
+
+                <Border x:Name="DragInsertLine"
+                        Height="2"
+                        Opacity="0"
+                        Background="#8b5cf6">
+                    <Border.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.10" />
+                        </Transitions>
+                    </Border.Transitions>
+                </Border>
+
+                <ContentPresenter x:Name="DragGhostHost"
+                                  Opacity="0"
+                                  IsHitTestVisible="False">
+                    <ContentPresenter.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.08" />
+                        </Transitions>
+                    </ContentPresenter.Transitions>
+                </ContentPresenter>
+            </Canvas>
+        </Grid>
+    </Grid>
+
+</UserControl>

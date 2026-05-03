@@ -1,0 +1,263 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Storyboard.ViewModels"
+        x:Class="Storyboard.Views.ProviderSettingsDialog"
+        x:DataType="vm:ApiKeyViewModel"
+        Title="模型提供商设置"
+        Width="700"
+        Height="700"
+        WindowStartupLocation="CenterOwner"
+        Background="#0a0a0a">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="提供商设置"
+                       FontSize="24"
+                       FontWeight="SemiBold"
+                       Foreground="#f5f5f5"
+                       Margin="0,0,0,8" />
+            <TextBlock Text="配置文本、图像和视频的默认设置和提供商凭据。"
+                       FontSize="14"
+                       Foreground="#71717a" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="16">
+                <Border Background="#18181b"
+                        BorderBrush="#27272a"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="默认设置" FontSize="14" FontWeight="SemiBold" Foreground="#f5f5f5" />
+
+                        <Grid ColumnDefinitions="140,*,140,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="文本提供商" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                            <ComboBox Grid.Row="0" Grid.Column="1"
+                                      ItemsSource="{Binding AvailableProviderTypes}"
+                                      SelectedItem="{Binding DefaultTextProvider}"
+                                      Background="#0a0a0a"
+                                      BorderBrush="#27272a" Margin="0,0,10,10" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="文本模型" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                            <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DefaultTextModel}" Classes="Modern" Margin="0,0,0,10" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="图像提供商" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                            <ComboBox Grid.Row="1" Grid.Column="1"
+                                      ItemsSource="{Binding AvailableProviderTypes}"
+                                      SelectedItem="{Binding DefaultImageProvider}"
+                                      Background="#0a0a0a"
+                                      BorderBrush="#27272a" Margin="0,0,10,10" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="图像模型" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DefaultImageModel}" Classes="Modern" Margin="0,0,0,10" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="视频提供商" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                            <ComboBox Grid.Row="2" Grid.Column="1"
+                                      ItemsSource="{Binding AvailableProviderTypes}"
+                                      SelectedItem="{Binding DefaultVideoProvider}"
+                                      Background="#0a0a0a"
+                                      BorderBrush="#27272a" Margin="0,0,10,10" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="视频模型" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                            <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding DefaultVideoModel}" Classes="Modern" Margin="0,0,0,10" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="语音提供商" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,0" />
+                            <ComboBox Grid.Row="3" Grid.Column="1"
+                                      ItemsSource="{Binding AvailableProviderTypes}"
+                                      SelectedItem="{Binding DefaultTtsProvider}"
+                                      Background="#0a0a0a"
+                                      BorderBrush="#27272a" Margin="0,0,10,0" />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Text="语音模型" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,0" />
+                            <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding DefaultTtsModel}" Classes="Modern" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#18181b"
+                        BorderBrush="#27272a"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Tag="NewApi"
+                        PointerPressed="OnProviderCardPressed">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                                <TextBlock Text="New API" FontSize="14" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Border Background="#14532d" CornerRadius="10" Padding="10,3" IsVisible="{Binding NewApiEnabled}">
+                                    <TextBlock Text="已启用" FontSize="12" Foreground="#bbf7d0" />
+                                </Border>
+                                <ToggleSwitch IsChecked="{Binding NewApiEnabled}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Background="#0a0a0a" BorderBrush="#27272a" BorderThickness="1" CornerRadius="8" Padding="12"
+                                IsVisible="{Binding IsNewApiSelected}">
+                            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="API 密钥" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding NewApiApiKey}" PasswordChar="*" Classes="Modern" Margin="0,0,0,10" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="地址" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NewApiEndpoint}" Classes="Modern" Margin="0,0,0,10" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="超时时间(秒)" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,0" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding NewApiTimeoutSeconds}" Classes="Modern" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#18181b"
+                        BorderBrush="#27272a"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Tag="Qwen"
+                        PointerPressed="OnProviderCardPressed">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Qwen" FontSize="14" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Border Background="#14532d" CornerRadius="10" Padding="10,3" IsVisible="{Binding QwenEnabled}">
+                                    <TextBlock Text="已启用" FontSize="12" Foreground="#bbf7d0" />
+                                </Border>
+                                <ToggleSwitch IsChecked="{Binding QwenEnabled}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Background="#0a0a0a" BorderBrush="#27272a" BorderThickness="1" CornerRadius="8" Padding="12"
+                                IsVisible="{Binding IsQwenSelected}">
+                            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="API 密钥" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding QwenApiKey}" PasswordChar="*" Classes="Modern" Margin="0,0,0,10" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="端点" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding QwenEndpoint}" Classes="Modern" Margin="0,0,0,10" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="超时时间(秒)" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,0" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding QwenTimeoutSeconds}" Classes="Modern" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#18181b"
+                        BorderBrush="#27272a"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Tag="Volcengine"
+                        PointerPressed="OnProviderCardPressed">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Volcengine" FontSize="14" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Border Background="#14532d" CornerRadius="10" Padding="10,3" IsVisible="{Binding VolcengineEnabled}">
+                                    <TextBlock Text="已启用" FontSize="12" Foreground="#bbf7d0" />
+                                </Border>
+                                <ToggleSwitch IsChecked="{Binding VolcengineEnabled}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Background="#0a0a0a" BorderBrush="#27272a" BorderThickness="1" CornerRadius="8" Padding="12"
+                                IsVisible="{Binding IsVolcengineSelected}">
+                            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="API 密钥" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding VolcengineApiKey}" PasswordChar="*" Classes="Modern" Margin="0,0,0,10" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="地址" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,10" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding VolcengineEndpoint}" Classes="Modern" Margin="0,0,0,10" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="超时时间(秒)" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,0" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding VolcengineTimeoutSeconds}" Classes="Modern" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="TTS AppId" Foreground="#a1a1aa" FontSize="12" Margin="0,10,10,10" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding VolcengineTtsAppId}" Classes="Modern" Margin="0,10,0,10" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="TTS Cluster" Foreground="#a1a1aa" FontSize="12" Margin="0,0,10,0" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding VolcengineTtsCluster}" Classes="Modern" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#18181b"
+                        BorderBrush="#27272a"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="验证结果" FontSize="13" Foreground="#a1a1aa" />
+                            <TextBlock Text="点击验证以刷新。" FontSize="12" Foreground="#71717a" />
+                        </StackPanel>
+
+                        <TextBlock Text="暂无验证结果。" Foreground="#71717a" IsVisible="{Binding HasNoValidationResults}" />
+
+                        <ScrollViewer MaxHeight="160" IsVisible="{Binding HasValidationResults}">
+                            <ItemsControl ItemsSource="{Binding ValidationResults}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Spacing="8" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="Auto,Auto,*">
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Provider}"
+                                                       FontSize="12"
+                                                       Foreground="#e2e8f0" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding ResultText}"
+                                                       FontSize="12"
+                                                       Foreground="#a1a1aa"
+                                                       Margin="12,0,0,0" />
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding Message}"
+                                                       FontSize="12"
+                                                       Foreground="#71717a"
+                                                       Margin="12,0,0,0"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,24,0,0">
+            <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Foreground="#71717a" VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Classes="Secondary"
+                    Content="重新加载"
+                    Width="100"
+                    Margin="0,0,12,0"
+                    Command="{Binding ReloadCommand}" />
+            <Button Grid.Column="2"
+                    Classes="Secondary"
+                    Content="验证"
+                    Width="100"
+                    Margin="0,0,12,0"
+                    Command="{Binding ValidateCommand}" />
+            <Button Grid.Column="3"
+                    Classes="Secondary"
+                    Content="取消"
+                    Width="100"
+                    Margin="0,0,12,0"
+                    Click="OnCancelClick" />
+            <Button Grid.Column="4"
+                    Classes="Primary"
+                    Content="保存"
+                    Width="100"
+                    Command="{Binding SaveCommand}" />
+        </Grid>
+    </Grid>
+</Window>

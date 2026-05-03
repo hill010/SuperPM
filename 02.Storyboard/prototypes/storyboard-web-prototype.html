@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Storyboard Web Prototype</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080a0f;
+      --panel: #0d111a;
+      --panel-2: #111827;
+      --panel-3: #161d2b;
+      --line: #263044;
+      --line-soft: #1c2535;
+      --text: #f4f7fb;
+      --muted: #94a3b8;
+      --faint: #64748b;
+      --brand: #7c5cff;
+      --brand-2: #22d3ee;
+      --good: #36d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --radius: 8px;
+      --shadow: 0 24px 80px rgba(0,0,0,.45);
+      font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(124,92,255,.18), transparent 32%),
+        linear-gradient(135deg, #080a0f 0%, #0b1020 48%, #070a12 100%);
+      color: var(--text);
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; }
+    .hidden { display: none !important; }
+    .btn {
+      border: 1px solid var(--line);
+      background: #121a29;
+      color: var(--text);
+      border-radius: var(--radius);
+      min-height: 34px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: .16s ease;
+    }
+    .btn:hover { border-color: #475569; background: #172033; }
+    .btn.primary {
+      border: 0;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: white;
+      font-weight: 700;
+    }
+    .btn.danger { color: var(--bad); }
+    .btn.ghost { background: transparent; }
+    .btn.small { min-height: 28px; padding: 0 9px; font-size: 12px; }
+    .icon-btn { width: 34px; padding: 0; }
+    .field, .select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0a0f19;
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 10px 11px;
+      outline: none;
+    }
+    textarea { resize: vertical; min-height: 92px; line-height: 1.55; }
+    label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .pill.good { color: var(--good); border-color: rgba(54,211,153,.35); }
+    .pill.warn { color: var(--warn); border-color: rgba(251,191,36,.35); }
+    .pill.bad { color: var(--bad); border-color: rgba(251,113,133,.35); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .login {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) 430px;
+      gap: 48px;
+      align-items: center;
+      padding: 44px 8vw;
+    }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      font-weight: 900;
+      box-shadow: 0 12px 40px rgba(34,211,238,.25);
+    }
+    .hero h1 { font-size: clamp(38px, 5vw, 72px); line-height: 1.02; margin: 28px 0 18px; letter-spacing: 0; }
+    .hero p { max-width: 660px; color: var(--muted); font-size: 18px; line-height: 1.75; }
+    .frame-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 680px; margin-top: 34px; }
+    .frame {
+      aspect-ratio: 16/10;
+      border: 1px solid rgba(148,163,184,.18);
+      border-radius: 8px;
+      background:
+        linear-gradient(140deg, rgba(124,92,255,.22), transparent),
+        linear-gradient(45deg, #111827, #1d2738);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .frame:nth-child(2n) { background: linear-gradient(140deg, rgba(34,211,238,.17), transparent), linear-gradient(45deg, #111827, #182333); }
+    .frame span { height: 5px; border-radius: 8px; background: rgba(255,255,255,.55); }
+    .frame small { color: var(--muted); font-size: 11px; }
+    .auth-card {
+      border: 1px solid rgba(148,163,184,.18);
+      background: rgba(13,17,26,.78);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .auth-card h2 { margin: 0 0 8px; font-size: 22px; }
+    .auth-card p { margin: 0 0 22px; color: var(--muted); }
+    .form-stack { display: grid; gap: 14px; }
+    .auth-card .btn { width: 100%; min-height: 42px; }
+
+    .topbar {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line-soft);
+      background: rgba(8,10,15,.82);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .top-left, .top-actions { display: flex; align-items: center; gap: 10px; }
+    .crumb { color: var(--muted); font-size: 13px; }
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #253048;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .account-menu {
+      position: fixed;
+      right: 18px;
+      top: 64px;
+      z-index: 45;
+      width: 240px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(13,17,26,.98);
+      box-shadow: var(--shadow);
+      padding: 8px;
+    }
+    .menu-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .menu-item:hover { background: #121a29; color: var(--text); }
+
+    .projects {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+    }
+    .page-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+    .page-head h1 { margin: 0 0 8px; font-size: 28px; }
+    .page-head p { margin: 0; color: var(--muted); }
+    .project-tools { display: flex; align-items: center; gap: 10px; }
+    .project-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .empty-state, .permission-state {
+      border: 1px dashed rgba(148,163,184,.32);
+      border-radius: 12px;
+      background: rgba(13,17,26,.72);
+      padding: 34px;
+      display: grid;
+      gap: 14px;
+      justify-items: start;
+      max-width: 680px;
+    }
+    .empty-state h2, .permission-state h2 { margin: 0; }
+    .empty-state p, .permission-state p { margin: 0; color: var(--muted); line-height: 1.7; }
+    .project-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(22,29,43,.9), rgba(13,17,26,.92));
+      padding: 14px;
+      transition: .16s ease;
+    }
+    .project-card:hover { transform: translateY(-2px); border-color: rgba(124,92,255,.55); }
+    .thumb-strip { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; height: 132px; margin-bottom: 13px; }
+    .thumb {
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,.16);
+      background: linear-gradient(140deg, rgba(124,92,255,.25), rgba(34,211,238,.08)), #111827;
+    }
+    .thumb.small-stack { display: grid; gap: 8px; background: transparent; border: 0; }
+    .project-card h3 { margin: 0 0 8px; }
+    .meta-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; gap: 10px; }
+
+    .workspace {
+      height: calc(100vh - 58px);
+      display: grid;
+      grid-template-columns: 270px minmax(520px, 1fr) 360px;
+      overflow: hidden;
+    }
+    .sidebar, .inspector {
+      background: rgba(13,17,26,.95);
+      border-right: 1px solid var(--line-soft);
+      overflow: auto;
+    }
+    .inspector { border-left: 1px solid var(--line-soft); border-right: 0; }
+    .side-section { padding: 16px; border-bottom: 1px solid var(--line-soft); }
+    .side-section h3, .panel-title { margin: 0 0 12px; font-size: 13px; color: #dbeafe; }
+    .nav-list { display: grid; gap: 6px; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--muted);
+      background: transparent;
+    }
+    .nav-item.active { color: var(--text); border-color: rgba(124,92,255,.35); background: rgba(124,92,255,.12); }
+    .script-box { min-height: 150px; }
+    .main {
+      min-width: 0;
+      overflow: auto;
+      background: rgba(8,10,15,.68);
+    }
+    .main-toolbar {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line-soft);
+      background: rgba(10,15,25,.78);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .tabs { display: flex; gap: 8px; }
+    .tab {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+      min-height: 32px;
+      padding: 0 11px;
+    }
+    .tab.active { border-color: var(--line); color: var(--text); background: #121a29; }
+    .shot-list { padding: 16px; display: grid; gap: 12px; }
+    .timeline-view { padding: 18px; display: grid; gap: 14px; }
+    .timeline-track {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0a0f19;
+      padding: 14px;
+      overflow-x: auto;
+    }
+    .timeline-row {
+      min-width: 760px;
+      display: grid;
+      grid-template-columns: 1.1fr 1.3fr .9fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .clip {
+      border: 1px solid rgba(124,92,255,.4);
+      background: linear-gradient(135deg, rgba(124,92,255,.18), rgba(34,211,238,.08));
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 92px;
+    }
+    .clip strong { display: block; margin-bottom: 7px; }
+    .clip small { color: var(--muted); line-height: 1.5; }
+    .shot-card {
+      display: grid;
+      grid-template-columns: 38px 128px 1fr 96px;
+      gap: 12px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(17,24,39,.9), rgba(13,17,26,.92));
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .shot-card.selected { border-color: rgba(124,92,255,.8); box-shadow: 0 0 0 1px rgba(124,92,255,.25) inset; }
+    .shot-number {
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #0a0f19;
+      color: var(--brand-2);
+      font-weight: 800;
+    }
+    .shot-media { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .mini-frame {
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,.16);
+      background: linear-gradient(140deg, rgba(124,92,255,.25), rgba(34,211,238,.06)), #0a0f19;
+      min-height: 82px;
+      display: grid;
+      place-items: center;
+      color: var(--faint);
+      font-size: 11px;
+      overflow: hidden;
+    }
+    .mini-frame.generated {
+      background:
+        linear-gradient(140deg, rgba(251,191,36,.18), transparent),
+        linear-gradient(45deg, #22263a, #102234);
+      color: #e2e8f0;
+    }
+    .mini-frame.loading { position: relative; color: var(--brand-2); }
+    .mini-frame.loading::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent);
+      animation: shine 1.2s linear infinite;
+    }
+    @keyframes shine { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    .shot-main h3 { margin: 0 0 7px; font-size: 15px; }
+    .shot-main p { margin: 0 0 10px; color: var(--muted); line-height: 1.55; font-size: 13px; }
+    .shot-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .shot-actions { display: grid; gap: 8px; align-content: center; }
+    .more-menu {
+      position: fixed;
+      z-index: 55;
+      width: 180px;
+      border: 1px solid var(--line);
+      background: #0d111a;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 6px;
+    }
+    .inspector .side-section { padding: 14px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .param-grid { display: grid; gap: 11px; }
+    .hint-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .hint-row strong { font-size: 13px; }
+    .save-state { color: var(--good); font-size: 12px; }
+
+    .drawer {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      width: min(520px, calc(100vw - 36px));
+      max-height: 70vh;
+      overflow: auto;
+      z-index: 40;
+      border: 1px solid var(--line);
+      background: rgba(13,17,26,.96);
+      box-shadow: var(--shadow);
+      border-radius: 12px;
+    }
+    .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-bottom: 1px solid var(--line-soft); }
+    .job-list { display: grid; gap: 10px; padding: 12px; }
+    .job {
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      padding: 10px;
+      background: #0a0f19;
+    }
+    .job-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+    .progress { height: 5px; border-radius: 999px; background: #1e293b; overflow: hidden; }
+    .progress span { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      background: rgba(3,7,18,.68);
+      padding: 20px;
+    }
+    .modal-card {
+      width: min(760px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: #0d111a;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .modal-head, .modal-body, .modal-foot { padding: 18px; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); }
+    .modal-head h2 { margin: 0; font-size: 18px; }
+    .modal-foot { border-top: 1px solid var(--line-soft); display: flex; justify-content: flex-end; gap: 10px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+    .asset {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #0a0f19;
+    }
+    .asset .mini-frame { border: 0; border-radius: 0; aspect-ratio: 16/10; }
+    .asset-info { padding: 9px; font-size: 12px; color: var(--muted); }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .plan {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      background: #0a0f19;
+    }
+    .plan.featured { border-color: rgba(124,92,255,.8); background: rgba(124,92,255,.1); }
+    .price { font-size: 26px; font-weight: 800; margin: 12px 0; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      background: #111827;
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      z-index: 80;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1100px) {
+      .login { grid-template-columns: 1fr; }
+      .workspace { grid-template-columns: 220px minmax(420px, 1fr); }
+      .inspector { position: fixed; right: 0; top: 58px; bottom: 0; width: min(380px, 92vw); box-shadow: var(--shadow); }
+      .project-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 760px) {
+      .project-grid, .plans, .asset-grid { grid-template-columns: 1fr; }
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .shot-card { grid-template-columns: 34px 1fr; }
+      .shot-media, .shot-actions { grid-column: 2; }
+      .login { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app">
+    <section id="loginView" class="login">
+      <div class="hero">
+        <div class="brand-mark">SW</div>
+        <h1>把脚本变成可执行的分镜工作台</h1>
+        <p>登录后创建项目，输入脚本，AI 自动拆分镜头。你可以编辑镜头、生成首尾帧图、管理素材和导出分镜资料。</p>
+        <div class="frame-grid" aria-hidden="true">
+          <div class="frame"><span style="width:65%"></span><small>Shot 01 / 近景</small></div>
+          <div class="frame"><span style="width:48%"></span><small>First frame</small></div>
+          <div class="frame"><span style="width:72%"></span><small>Last frame</small></div>
+          <div class="frame"><span style="width:58%"></span><small>任务队列</small></div>
+          <div class="frame"><span style="width:82%"></span><small>Prompt</small></div>
+          <div class="frame"><span style="width:40%"></span><small>Export</small></div>
+        </div>
+      </div>
+      <div class="auth-card">
+        <h2>进入 Storyboard Web</h2>
+        <p>原型模式：点击登录即可进入项目列表。</p>
+        <div class="form-stack">
+          <div>
+            <label>邮箱</label>
+            <input class="field" value="creator@example.com" />
+          </div>
+          <div>
+            <label>密码</label>
+            <input class="field" type="password" value="storyboard" />
+          </div>
+          <button class="btn primary" data-action="login">登录并领取试用积分</button>
+          <button class="btn">使用 Google 继续</button>
+          <div class="meta-row"><span>免费试用 120 积分</span><span>图片生成按张扣费</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="shellView" class="hidden">
+      <header class="topbar">
+        <div class="top-left">
+          <button class="btn ghost icon-btn" data-action="backProjects">⌂</button>
+          <div class="brand-mark" style="width:30px;height:30px;border-radius:8px;font-size:12px">SW</div>
+          <strong>Storyboard Web</strong>
+          <span id="crumb" class="crumb">项目列表</span>
+        </div>
+        <div class="top-actions">
+          <button class="btn small" data-action="openJobs">任务队列 <span id="jobCount" class="pill">3</span></button>
+          <button class="btn small" data-action="openBilling">积分 96</button>
+          <button class="avatar" data-action="toggleAccount" title="账户菜单">林</button>
+        </div>
+      </header>
+
+      <div id="accountMenu" class="account-menu hidden">
+        <button class="menu-item"><span>个人资料</span><span>林导演</span></button>
+        <button class="menu-item" data-action="openBilling"><span>订阅与积分</span><span>96</span></button>
+        <button class="menu-item"><span>账单记录</span><span>3 条</span></button>
+        <button class="menu-item" data-action="showPermission"><span>模拟无权限页</span><span>403</span></button>
+        <button class="menu-item" data-action="logout"><span>退出登录</span><span>→</span></button>
+      </div>
+
+      <main id="projectsView" class="projects">
+        <div class="page-head">
+          <div>
+            <h1>项目</h1>
+            <p>个人工作区。第一版不开放团队协作，但数据结构预留工作区。</p>
+          </div>
+          <div class="project-tools">
+            <input class="field" style="width:230px" placeholder="搜索项目" />
+            <button class="btn" data-action="toggleEmptyProjects">查看空状态</button>
+            <button class="btn primary" data-action="openCreate">新建项目</button>
+          </div>
+        </div>
+        <div id="projectsEmpty" class="empty-state hidden">
+          <span class="pill warn">个人工作区</span>
+          <h2>还没有项目</h2>
+          <p>创建第一个项目后，你可以输入脚本、生成分镜、制作首尾帧图，并导出给团队或客户查看。</p>
+          <button class="btn primary" data-action="openCreate">新建项目</button>
+        </div>
+        <div id="projectGrid" class="project-grid">
+          <article class="project-card" data-action="openWorkspace">
+            <div class="thumb-strip">
+              <div class="thumb"></div>
+              <div class="thumb small-stack"><div class="thumb"></div><div class="thumb"></div></div>
+            </div>
+            <h3>雨夜便利店短片</h3>
+            <div class="meta-row"><span>12 个镜头 · 8 张图片</span><span>刚刚更新</span></div>
+          </article>
+          <article class="project-card" data-action="openWorkspace">
+            <div class="thumb-strip">
+              <div class="thumb"></div>
+              <div class="thumb small-stack"><div class="thumb"></div><div class="thumb"></div></div>
+            </div>
+            <h3>新品发布广告</h3>
+            <div class="meta-row"><span>9 个镜头 · 4 张图片</span><span>昨天</span></div>
+          </article>
+          <article class="project-card" data-action="openWorkspace">
+            <div class="thumb-strip">
+              <div class="thumb"></div>
+              <div class="thumb small-stack"><div class="thumb"></div><div class="thumb"></div></div>
+            </div>
+            <h3>动画试播集开场</h3>
+            <div class="meta-row"><span>18 个镜头 · 12 张图片</span><span>4 月 28 日</span></div>
+          </article>
+        </div>
+      </main>
+
+      <main id="workspaceView" class="workspace hidden">
+        <aside class="sidebar">
+          <div class="side-section">
+            <h3>雨夜便利店短片</h3>
+            <div class="meta-row"><span>16:9 · 90 秒</span><span class="pill good">已保存</span></div>
+          </div>
+          <div class="side-section">
+            <h3>项目导航</h3>
+            <div class="nav-list">
+              <button class="nav-item active"><span>分镜工作台</span><span>12</span></button>
+              <button class="nav-item" data-action="openAssets"><span>素材库</span><span>8</span></button>
+              <button class="nav-item" data-action="openJobs"><span>生成任务</span><span>3</span></button>
+              <button class="nav-item" data-action="openExport"><span>导出</span><span>MD/CSV</span></button>
+            </div>
+          </div>
+          <div class="side-section">
+            <div class="hint-row"><h3 style="margin:0">脚本输入</h3><span class="pill warn">消耗 3 积分</span></div>
+            <textarea id="scriptInput" class="field script-box">雨夜，一位疲惫的年轻导演走进便利店，发现店员正在用纸杯搭建一个微型城市。两人因为一个遗失的胶片盒展开交谈，最后决定把这个雨夜拍成一部短片。</textarea>
+            <div class="two-col" style="margin-top:10px">
+              <select class="select"><option>自动镜头数</option><option>6 镜头</option><option>12 镜头</option></select>
+              <button class="btn primary" data-action="generateShots">生成分镜</button>
+            </div>
+          </div>
+          <div class="side-section">
+            <h3>项目设定</h3>
+            <div class="param-grid">
+              <div><label>创作目标</label><input class="field" value="拍摄一支带悬疑感的剧情短片" /></div>
+              <div><label>视频基调</label><select class="select"><option>克制、雨夜、带一点温柔</option></select></div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="main">
+          <div class="main-toolbar">
+            <div class="tabs">
+              <button id="listTab" class="tab active" data-action="showShotList">分镜列表</button>
+              <button id="timelineTab" class="tab" data-action="showTimeline">时间线草图</button>
+            </div>
+            <div class="top-actions">
+              <button class="btn small" data-action="batchGenerate">批量生成首尾帧</button>
+              <button class="btn small" data-action="openExport">导出</button>
+            </div>
+          </div>
+          <div id="shotList" class="shot-list"></div>
+          <div id="timelineView" class="timeline-view hidden">
+            <div class="empty-state" style="max-width:none">
+              <span class="pill">轻量时间线</span>
+              <h2>镜头时长草图</h2>
+              <p>第一版只展示镜头顺序和时长，不做视频剪辑。完整视频时间线、音频和合成放到第二版。</p>
+            </div>
+            <div class="timeline-track">
+              <div id="timelineRow" class="timeline-row"></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="inspector">
+          <div class="side-section">
+            <div class="hint-row">
+              <h3 style="margin:0">镜头详情</h3>
+              <span class="save-state">已自动保存</span>
+            </div>
+            <div class="two-col">
+              <div><label>镜头编号</label><input id="shotNumberField" class="field" value="01" /></div>
+              <div><label>时长</label><input id="durationField" class="field" value="6 秒" /></div>
+            </div>
+          </div>
+          <div class="side-section">
+            <h3>基础信息</h3>
+            <div class="param-grid">
+              <div><label>景别</label><select id="shotTypeField" class="select"></select></div>
+              <div><label>核心内容</label><textarea id="coreField" class="field"></textarea></div>
+              <div><label>动作指令</label><textarea id="actionField" class="field"></textarea></div>
+            </div>
+          </div>
+          <div class="side-section">
+            <div class="hint-row"><strong>首帧提示词</strong><button class="btn small" data-action="genFirst">生成首帧 · 8 积分</button></div>
+            <textarea id="firstPromptField" class="field"></textarea>
+          </div>
+          <div class="side-section">
+            <div class="hint-row"><strong>尾帧提示词</strong><button class="btn small" data-action="genLast">生成尾帧 · 8 积分</button></div>
+            <textarea id="lastPromptField" class="field"></textarea>
+          </div>
+          <div class="side-section">
+            <h3>生成参数</h3>
+            <div class="two-col">
+              <div><label>构图</label><select class="select"><option>三分法</option><option>中心构图</option></select></div>
+              <div><label>光线</label><select class="select"><option>雨夜霓虹</option><option>柔光</option></select></div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </section>
+  </div>
+
+  <div id="jobsDrawer" class="drawer hidden">
+    <div class="drawer-head"><strong>任务队列</strong><button class="btn small" data-action="closeJobs">关闭</button></div>
+    <div id="jobList" class="job-list"></div>
+  </div>
+
+  <div id="createModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2>新建项目</h2><button class="btn small" data-action="closeModal">关闭</button></div>
+      <div class="modal-body">
+        <div class="param-grid">
+          <div><label>项目名称</label><input class="field" value="雨夜便利店短片" /></div>
+          <div class="two-col">
+            <div><label>画幅比例</label><select class="select"><option>16:9 横屏</option><option>9:16 竖屏</option><option>1:1 方形</option></select></div>
+            <div><label>目标片长</label><input class="field" value="90 秒" /></div>
+          </div>
+          <div><label>创作目标</label><textarea class="field">拍一支具有悬疑气质但结尾温柔的剧情短片。</textarea></div>
+          <div><label>目标受众</label><input class="field" value="喜欢电影感短片的年轻创作者和品牌方" /></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn" data-action="closeModal">取消</button><button class="btn primary" data-action="createProject">创建并进入工作台</button></div>
+    </div>
+  </div>
+
+  <div id="assetsModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2>素材库</h2><button class="btn small" data-action="closeModal">关闭</button></div>
+      <div class="modal-body">
+        <div class="hint-row"><span class="pill">全部</span><span class="pill">首帧</span><span class="pill">尾帧</span><span class="pill">参考图</span></div>
+        <div id="assetGrid" class="asset-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="billingModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2>积分与订阅</h2><button class="btn small" data-action="closeModal">关闭</button></div>
+      <div class="modal-body">
+        <p style="color:var(--muted);margin-top:0">当前余额：96 积分。生成首帧或尾帧预计每张 8 积分，失败任务退回冻结积分。</p>
+        <div class="plans">
+          <div class="plan"><h3>试用</h3><div class="price">¥0</div><p>120 积分，适合体验 A+B 闭环。</p><button class="btn">当前计划</button></div>
+          <div class="plan featured"><h3>Creator</h3><div class="price">¥69/月</div><p>每月 900 积分，更高并发，适合持续创作。</p><button class="btn primary">升级</button></div>
+          <div class="plan"><h3>积分包</h3><div class="price">¥99</div><p>额外 1500 积分，不影响订阅权益。</p><button class="btn">购买积分</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="exportModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2>导出分镜资料</h2><button class="btn small" data-action="closeModal">关闭</button></div>
+      <div class="modal-body">
+        <div class="param-grid">
+          <label><input type="checkbox" checked /> 包含首尾帧图片</label>
+          <label><input type="checkbox" checked /> 包含提示词和生成参数</label>
+          <label><input type="checkbox" /> 仅导出已生成图片的镜头</label>
+          <div class="two-col">
+            <button class="btn primary" data-action="exportDone">导出 Markdown</button>
+            <button class="btn" data-action="exportDone">导出 CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="creditModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h2>积分不足</h2><button class="btn small" data-action="closeModal">关闭</button></div>
+      <div class="modal-body">
+        <p style="color:var(--muted);margin-top:0">本次批量生成预计消耗 128 积分，当前余额 96 积分。失败任务会退回冻结积分。</p>
+        <div class="plans">
+          <div class="plan featured"><h3>购买积分包</h3><div class="price">¥99</div><p>获得 1500 积分，立即用于图片生成。</p><button class="btn primary" data-action="openBilling">购买积分</button></div>
+          <div class="plan"><h3>升级订阅</h3><div class="price">¥69/月</div><p>每月 900 积分，更高并发。</p><button class="btn" data-action="openBilling">查看订阅</button></div>
+          <div class="plan"><h3>缩小范围</h3><div class="price">96</div><p>只选择 6 张以内图片，继续使用当前余额。</p><button class="btn" data-action="closeModal">返回选择</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="permissionView" class="projects hidden">
+    <div class="permission-state">
+      <span class="pill bad">403 / Not Found</span>
+      <h2>无法访问这个项目</h2>
+      <p>项目可能不存在，或当前账户没有访问权限。第一版只开放个人项目，团队共享入口不会显示。</p>
+      <div class="top-actions">
+        <button class="btn primary" data-action="backProjects">返回项目列表</button>
+        <button class="btn" data-action="openBilling">查看账户状态</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="moreMenu" class="more-menu hidden"></div>
+
+  <script>
+    const shots = [
+      {
+        id: 1, type: "近景", duration: "6 秒", status: "已生成首帧",
+        core: "年轻导演推开便利店玻璃门，雨水顺着伞沿滴落，店内冷白灯和窗外霓虹形成反差。",
+        action: "他收起伞，抬头看向收银台，注意到店员桌上的纸杯城市。",
+        first: "雨夜便利店门口，年轻导演撑伞进入，玻璃反射霓虹，电影感近景，冷色雨光。",
+        last: "导演站在收银台前，目光被纸杯搭成的微型城市吸引，背景便利店货架虚化。",
+        firstDone: true, lastDone: false
+      },
+      {
+        id: 2, type: "中景", duration: "7 秒", status: "待生成",
+        core: "店员安静地把纸杯排列成街区，像在搭建一座只有夜晚存在的城市。",
+        action: "店员没有抬头，只把一个纸杯推到城市边缘，示意导演靠近。",
+        first: "便利店收银台中景，店员专注搭建纸杯城市，桌面有便利店小票和暖色台灯。",
+        last: "纸杯城市完成一条街道，导演的手进入画面，停在纸杯边缘。",
+        firstDone: false, lastDone: false
+      },
+      {
+        id: 3, type: "特写", duration: "5 秒", status: "尾帧失败",
+        core: "一个旧胶片盒从纸杯城市中央滑出，上面写着导演小时候的名字。",
+        action: "导演迟疑地拿起胶片盒，指尖停在褪色标签上。",
+        first: "旧胶片盒躺在纸杯城市中央，标签褪色，雨声隐约，电影感特写。",
+        last: "导演指尖触碰胶片盒标签，手部特写，背景纸杯城市模糊。",
+        firstDone: true, lastDone: false,
+        failed: true
+      }
+    ];
+    let selected = 0;
+    let emptyProjects = false;
+    let jobs = [
+      { title: "文本拆镜 · 雨夜便利店短片", state: "成功", progress: 100, cost: "3 积分" },
+      { title: "生成首帧 · Shot 01", state: "成功", progress: 100, cost: "8 积分" },
+      { title: "生成尾帧 · Shot 03", state: "失败 · 已退回", progress: 100, cost: "0 积分" }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const show = (el) => el.classList.remove("hidden");
+    const hide = (el) => el.classList.add("hidden");
+    const toast = (msg) => {
+      $("toast").textContent = msg;
+      show($("toast"));
+      setTimeout(() => hide($("toast")), 1800);
+    };
+
+    function renderShots() {
+      $("shotList").innerHTML = shots.map((shot, index) => `
+        <article class="shot-card ${index === selected ? "selected" : ""}" data-shot="${index}">
+          <div class="shot-number">${String(shot.id).padStart(2, "0")}</div>
+          <div class="shot-media">
+            <div class="mini-frame ${shot.firstDone ? "generated" : ""}" data-kind="first">${shot.firstDone ? "首帧" : "待首帧"}</div>
+            <div class="mini-frame ${shot.lastDone ? "generated" : shot.failed ? "" : ""}" data-kind="last">${shot.lastDone ? "尾帧" : shot.failed ? "失败" : "待尾帧"}</div>
+          </div>
+          <div class="shot-main">
+            <h3>${shot.core}</h3>
+            <p>${shot.action}</p>
+            <div class="shot-tags">
+              <span class="pill">${shot.type}</span>
+              <span class="pill">${shot.duration}</span>
+              <span class="pill ${shot.failed ? "bad" : shot.firstDone || shot.lastDone ? "good" : "warn"}"><span class="dot"></span>${shot.status}</span>
+            </div>
+          </div>
+          <div class="shot-actions">
+            <button class="btn small" data-action="genFirst" data-index="${index}">首帧</button>
+            <button class="btn small" data-action="genLast" data-index="${index}">尾帧</button>
+            <button class="btn small" data-action="openShotMenu" data-index="${index}">更多</button>
+          </div>
+        </article>
+      `).join("");
+      renderInspector();
+      renderAssets();
+      renderTimeline();
+    }
+
+    function renderTimeline() {
+      $("timelineRow").innerHTML = shots.map((shot, index) => `
+        <div class="clip" data-shot="${index}">
+          <strong>Shot ${String(shot.id).padStart(2, "0")} · ${shot.duration}</strong>
+          <small>${shot.type}<br />${shot.core}</small>
+        </div>
+      `).join("");
+    }
+
+    function renderInspector() {
+      const shot = shots[selected];
+      $("shotNumberField").value = String(shot.id).padStart(2, "0");
+      $("durationField").value = shot.duration;
+      $("shotTypeField").innerHTML = ["特写", "近景", "中景", "全景", "远景"].map(type => `<option ${type === shot.type ? "selected" : ""}>${type}</option>`).join("");
+      $("coreField").value = shot.core;
+      $("actionField").value = shot.action;
+      $("firstPromptField").value = shot.first;
+      $("lastPromptField").value = shot.last;
+    }
+
+    function renderJobs() {
+      $("jobCount").textContent = jobs.length;
+      $("jobList").innerHTML = jobs.map(job => `
+        <div class="job">
+          <div class="job-top"><strong>${job.title}</strong><span class="pill ${job.state.includes("失败") ? "bad" : job.state === "成功" ? "good" : "warn"}">${job.state}</span></div>
+          <div class="meta-row"><span>${job.cost}</span><span>${job.progress}%</span></div>
+          <div class="progress"><span style="width:${job.progress}%"></span></div>
+        </div>
+      `).join("");
+    }
+
+    function renderAssets() {
+      const assets = shots.flatMap(s => [
+        s.firstDone ? { name: `Shot ${String(s.id).padStart(2, "0")} 首帧`, type: "首帧" } : null,
+        s.lastDone ? { name: `Shot ${String(s.id).padStart(2, "0")} 尾帧`, type: "尾帧" } : null
+      ]).filter(Boolean);
+      $("assetGrid").innerHTML = assets.map(asset => `
+        <div class="asset">
+          <div class="mini-frame generated">${asset.type}</div>
+          <div class="asset-info"><strong>${asset.name}</strong><br />绑定镜头，可用于导出</div>
+        </div>
+      `).join("") || `<div style="color:var(--muted)">还没有素材。请先生成首帧或尾帧。</div>`;
+    }
+
+    function generateFrame(kind, index = selected) {
+      const shot = shots[index];
+      const isLast = kind === "last";
+      jobs.unshift({ title: `生成${isLast ? "尾帧" : "首帧"} · Shot ${String(shot.id).padStart(2, "0")}`, state: "执行中", progress: 36, cost: "冻结 8 积分" });
+      renderJobs();
+      toast("已创建生成任务，预计消耗 8 积分");
+      const card = document.querySelector(`[data-shot="${index}"] [data-kind="${kind}"]`);
+      if (card) card.classList.add("loading");
+      setTimeout(() => {
+        if (isLast) {
+          shot.lastDone = true;
+          shot.failed = false;
+          shot.status = "首尾帧完成";
+        } else {
+          shot.firstDone = true;
+          shot.status = shot.lastDone ? "首尾帧完成" : "已生成首帧";
+        }
+        jobs[0].state = "成功";
+        jobs[0].progress = 100;
+        jobs[0].cost = "扣除 8 积分";
+        renderShots();
+        renderJobs();
+        toast(`${isLast ? "尾帧" : "首帧"}生成完成，已保存到素材库`);
+      }, 1100);
+    }
+
+    function renumberShots() {
+      shots.forEach((shot, index) => shot.id = index + 1);
+      selected = Math.min(selected, shots.length - 1);
+    }
+
+    function cloneShot(index) {
+      const source = shots[index];
+      return {
+        ...source,
+        id: shots.length + 1,
+        status: "待生成",
+        firstDone: false,
+        lastDone: false,
+        failed: false
+      };
+    }
+
+    function openShotMenu(button, index) {
+      const rect = button.getBoundingClientRect();
+      $("moreMenu").style.left = `${Math.min(rect.left, window.innerWidth - 196)}px`;
+      $("moreMenu").style.top = `${rect.bottom + 6}px`;
+      $("moreMenu").innerHTML = `
+        <button class="menu-item" data-action="duplicateShot" data-index="${index}"><span>复制镜头</span><span>⌘D</span></button>
+        <button class="menu-item" data-action="insertBefore" data-index="${index}"><span>在前面插入</span><span>↑</span></button>
+        <button class="menu-item" data-action="insertAfter" data-index="${index}"><span>在后面插入</span><span>↓</span></button>
+        <button class="menu-item" data-action="moveUp" data-index="${index}"><span>上移</span><span>⇧</span></button>
+        <button class="menu-item" data-action="moveDown" data-index="${index}"><span>下移</span><span>⇩</span></button>
+        <button class="menu-item" data-action="deleteShot" data-index="${index}" style="color:var(--bad)"><span>删除镜头</span><span>Del</span></button>
+      `;
+      show($("moreMenu"));
+    }
+
+    function showProjects() {
+      hide($("workspaceView"));
+      hide($("permissionView"));
+      show($("projectsView"));
+      $("crumb").textContent = "项目列表";
+      hide($("accountMenu"));
+    }
+
+    function showWorkspace() {
+      hide($("projectsView"));
+      hide($("permissionView"));
+      show($("workspaceView"));
+      $("crumb").textContent = "/ 雨夜便利店短片";
+      hide($("accountMenu"));
+      renderShots();
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-action], [data-shot]");
+      if (!target) return;
+      const action = target.dataset.action;
+      if (target.dataset.shot) {
+        selected = Number(target.dataset.shot);
+        renderShots();
+        hide($("moreMenu"));
+        return;
+      }
+      if (action !== "openShotMenu") hide($("moreMenu"));
+      if (action === "login") { hide($("loginView")); show($("shellView")); show($("projectsView")); renderShots(); renderJobs(); }
+      if (action === "backProjects") showProjects();
+      if (action === "openWorkspace") showWorkspace();
+      if (action === "openCreate") show($("createModal"));
+      if (action === "createProject") { hide($("createModal")); emptyProjects = false; show($("projectGrid")); hide($("projectsEmpty")); showWorkspace(); toast("项目已创建，已进入工作台"); }
+      if (action === "closeModal") document.querySelectorAll(".modal").forEach(hide);
+      if (action === "openJobs") { renderJobs(); show($("jobsDrawer")); }
+      if (action === "closeJobs") hide($("jobsDrawer"));
+      if (action === "openAssets") { renderAssets(); show($("assetsModal")); }
+      if (action === "openBilling") { hide($("creditModal")); show($("billingModal")); }
+      if (action === "openExport") show($("exportModal"));
+      if (action === "toggleAccount") $("accountMenu").classList.toggle("hidden");
+      if (action === "logout") { hide($("shellView")); show($("loginView")); hide($("accountMenu")); toast("已退出登录"); }
+      if (action === "showPermission") { hide($("projectsView")); hide($("workspaceView")); show($("permissionView")); $("crumb").textContent = "/ 无法访问"; hide($("accountMenu")); }
+      if (action === "toggleEmptyProjects") {
+        emptyProjects = !emptyProjects;
+        $("projectGrid").classList.toggle("hidden", emptyProjects);
+        $("projectsEmpty").classList.toggle("hidden", !emptyProjects);
+      }
+      if (action === "showTimeline") { hide($("shotList")); show($("timelineView")); $("listTab").classList.remove("active"); $("timelineTab").classList.add("active"); renderTimeline(); }
+      if (action === "showShotList") { show($("shotList")); hide($("timelineView")); $("timelineTab").classList.remove("active"); $("listTab").classList.add("active"); }
+      if (action === "exportDone") { hide($("exportModal")); toast("已生成导出文件：Storyboard-Markdown.md"); }
+      if (action === "generateShots") {
+        jobs.unshift({ title: "文本拆镜 · 当前脚本", state: "执行中", progress: 42, cost: "冻结 3 积分" });
+        renderJobs();
+        show($("jobsDrawer"));
+        toast("AI 拆镜任务已创建");
+        setTimeout(() => {
+          jobs[0].state = "成功";
+          jobs[0].progress = 100;
+          jobs[0].cost = "扣除 3 积分";
+          renderJobs();
+          toast("已生成 3 个镜头，可继续编辑");
+        }, 900);
+      }
+      if (action === "genFirst") generateFrame("first", target.dataset.index ? Number(target.dataset.index) : selected);
+      if (action === "genLast") generateFrame("last", target.dataset.index ? Number(target.dataset.index) : selected);
+      if (action === "openShotMenu") openShotMenu(target, Number(target.dataset.index));
+      if (action === "duplicateShot") {
+        const index = Number(target.dataset.index);
+        shots.splice(index + 1, 0, cloneShot(index));
+        renumberShots();
+        selected = index + 1;
+        renderShots();
+        toast("已复制镜头，并插入到原镜头后方");
+      }
+      if (action === "insertBefore" || action === "insertAfter") {
+        const index = Number(target.dataset.index);
+        const insertAt = action === "insertBefore" ? index : index + 1;
+        shots.splice(insertAt, 0, {
+          id: shots.length + 1,
+          type: "中景",
+          duration: "5 秒",
+          status: "待生成",
+          core: "新插入镜头：补充角色反应或场景过渡。",
+          action: "等待用户编辑动作指令。",
+          first: "新插入镜头的首帧提示词，等待用户完善。",
+          last: "新插入镜头的尾帧提示词，等待用户完善。",
+          firstDone: false,
+          lastDone: false
+        });
+        renumberShots();
+        selected = insertAt;
+        renderShots();
+        toast(action === "insertBefore" ? "已在前方插入镜头" : "已在后方插入镜头");
+      }
+      if (action === "moveUp" || action === "moveDown") {
+        const index = Number(target.dataset.index);
+        const next = action === "moveUp" ? index - 1 : index + 1;
+        if (next >= 0 && next < shots.length) {
+          [shots[index], shots[next]] = [shots[next], shots[index]];
+          selected = next;
+          renumberShots();
+          renderShots();
+          toast("镜头顺序已更新");
+        }
+      }
+      if (action === "deleteShot") {
+        const index = Number(target.dataset.index);
+        if (shots.length > 1) {
+          shots.splice(index, 1);
+          renumberShots();
+          selected = Math.max(0, index - 1);
+          renderShots();
+          toast("镜头已删除，编号已重新整理");
+        } else {
+          toast("至少保留一个镜头");
+        }
+      }
+      if (action === "batchGenerate") {
+        show($("creditModal"));
+        return;
+      }
+      if (action === "batchGenerateConfirmed") {
+        show($("jobsDrawer"));
+        jobs.unshift({ title: "批量生成首尾帧 · 3 个镜头", state: "排队中", progress: 12, cost: "预计 48 积分" });
+        renderJobs();
+        toast("批量任务已加入队列，预计消耗 48 积分");
+      }
+    });
+
+    renderShots();
+    renderJobs();
+  </script>
+</body>
+</html>

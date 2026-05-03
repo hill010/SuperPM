@@ -1,0 +1,343 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送 v* 标签时触发（如 v1.0.0）
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    permissions:
+      contents: write  # 需要写权限来创建 Release
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install Velopack
+      run: dotnet tool install -g vpk
+
+    - name: Restore dependencies
+      run: dotnet restore Storyboard.csproj --runtime win-x64
+
+    - name: Build
+      run: dotnet build Storyboard.csproj --configuration Release --no-restore
+
+    - name: Publish
+      run: dotnet publish Storyboard.csproj --configuration Release --output ./publish
+
+    - name: Prepare publish directory for Velopack
+      run: |
+        Write-Host "清理发布目录，移除用户数据文件夹（如果存在）"
+
+        # 确保不会打包用户数据文件夹
+        $foldersToRemove = @("Data", "data", "output", "Output", "logs", "Logs")
+        foreach ($folder in $foldersToRemove) {
+          $path = Join-Path "./publish" $folder
+          if (Test-Path $path) {
+            Write-Host "移除: $path"
+            Remove-Item -Path $path -Recurse -Force
+          }
+        }
+
+        # 创建 appsettings.default.json（用于配置合并）
+        $appsettingsPath = "./publish/appsettings.json"
+        $defaultSettingsPath = "./publish/appsettings.default.json"
+
+        if (Test-Path $appsettingsPath) {
+          Write-Host "创建 appsettings.default.json 用于配置合并"
+          Copy-Item -Path $appsettingsPath -Destination $defaultSettingsPath -Force
+        }
+
+        Write-Host "`n🧹 清理发布目录中的用户数据..."
+
+        # 删除 Data 文件夹（如果存在）
+        if (Test-Path ./publish/Data) {
+          Remove-Item -Path ./publish/Data -Recurse -Force
+          Write-Host "✅ 已删除 Data 文件夹"
+        }
+
+        # 删除 output 文件夹（如果存在）
+        if (Test-Path ./publish/output) {
+          Remove-Item -Path ./publish/output -Recurse -Force
+          Write-Host "✅ 已删除 output 文件夹"
+        }
+
+        Write-Host "✅ 发布目录准备完成"
+      shell: pwsh
+
+    - name: Get version from tag
+      id: get_version
+      run: |
+        $version = "${{ github.ref_name }}".TrimStart('v')
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "发布版本: $version"
+      shell: pwsh
+
+    - name: Package with Velopack
+      run: |
+        Write-Host "========================================="
+        Write-Host "开始 Velopack 打包流程"
+        Write-Host "========================================="
+
+        # 下载前一个版本的 Release（用于生成 delta 包）
+        Write-Host "`n🔍 查找前一个版本..."
+
+        $enableDelta = $false
+        $previousTag = $null
+
+        try {
+          # 获取最近5个版本，更可靠
+          $releases = gh release list --limit 5 --json tagName,isLatest | ConvertFrom-Json
+          $previousRelease = $releases | Where-Object { -not $_.isLatest } | Select-Object -First 1
+
+          if ($previousRelease) {
+            $previousTag = $previousRelease.tagName
+            Write-Host "✅ 发现前一个版本: $previousTag"
+            Write-Host "📦 准备生成增量更新包（Delta Package）"
+
+            # 下载前一个版本的 Release 文件
+            Write-Host "`n📥 下载前一个版本的文件..."
+            New-Item -ItemType Directory -Path ./previous-release -Force | Out-Null
+
+            # 分别下载，更好的错误处理
+            $downloadSuccess = $true
+
+            Write-Host "  📥 下载 RELEASES 文件..."
+            try {
+              gh release download $previousTag --dir ./previous-release --pattern "RELEASES" 2>&1 | Out-Null
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "  ⚠️ RELEASES 文件下载失败"
+                $downloadSuccess = $false
+              } else {
+                Write-Host "  ✅ RELEASES 文件下载成功"
+              }
+            } catch {
+              Write-Host "  ⚠️ RELEASES 文件下载异常: $_"
+              $downloadSuccess = $false
+            }
+
+            Write-Host "  📥 下载 .nupkg 文件..."
+            try {
+              gh release download $previousTag --dir ./previous-release --pattern "*.nupkg" 2>&1 | Out-Null
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "  ⚠️ .nupkg 文件下载失败"
+                $downloadSuccess = $false
+              } else {
+                Write-Host "  ✅ .nupkg 文件下载成功"
+              }
+            } catch {
+              Write-Host "  ⚠️ .nupkg 文件下载异常: $_"
+              $downloadSuccess = $false
+            }
+
+            # 验证文件完整性
+            if ($downloadSuccess -and (Test-Path ./previous-release/RELEASES)) {
+              $nupkgFiles = Get-ChildItem ./previous-release -Filter "*.nupkg"
+              if ($nupkgFiles.Count -gt 0) {
+                Write-Host "`n✅ 前一个版本文件下载完成:"
+                Get-ChildItem ./previous-release | ForEach-Object {
+                  $size = "{0:N2} MB" -f ($_.Length / 1MB)
+                  Write-Host "  - $($_.Name) ($size)"
+                }
+                $enableDelta = $true
+                Write-Host "`n🎯 增量包生成已启用"
+              } else {
+                Write-Host "`n⚠️ 未找到 .nupkg 文件，只生成完整安装包"
+              }
+            } else {
+              Write-Host "`n⚠️ 前一个版本文件不完整，只生成完整安装包"
+            }
+          } else {
+            Write-Host "ℹ️ 这是第一个版本，只生成完整安装包"
+          }
+        } catch {
+          Write-Host "⚠️ 查找前一个版本失败: $_"
+          Write-Host "将只生成完整安装包"
+        }
+
+        Write-Host "`n📦 开始打包..."
+
+        # 如果启用增量包，需要将前一个版本的 .nupkg 文件复制到输出目录
+        # 注意：不要复制 RELEASES 文件，让 vpk 自动生成完整的 RELEASES（包含 delta 包条目）
+        if ($enableDelta) {
+          Write-Host "`n📋 准备增量包生成环境..."
+
+          # 创建输出目录
+          New-Item -ItemType Directory -Path ./releases -Force | Out-Null
+
+          # 只复制前一个版本的 .nupkg 文件（用于生成 delta 包）
+          $previousNupkg = Get-ChildItem ./previous-release -Filter "*.nupkg" | Select-Object -First 1
+          if ($previousNupkg) {
+            Copy-Item -Path $previousNupkg.FullName -Destination ./releases/ -Force
+            Write-Host "  ✅ 已复制 $($previousNupkg.Name) 到输出目录"
+            Write-Host "  ℹ️  不复制 RELEASES 文件，让 vpk 自动生成（包含 delta 包条目）"
+          }
+
+          Write-Host "  🎯 增量包生成环境准备完成"
+        }
+
+        # 通用打包参数
+        $packArgs = @(
+          "pack",
+          "--packId", "Storyboard",
+          "--packVersion", "${{ steps.get_version.outputs.VERSION }}",
+          "--packDir", "./publish",
+          "--mainExe", "Storyboard.exe",
+          "--outputDir", "./releases",
+          "--icon", "./App/Assets/icon.ico",
+          "--packTitle", "分镜大师",
+          "--packAuthors", "BroderQi",
+          "--splashImage", "./App/Assets/icon.ico"
+        )
+
+        # 如果启用增量包
+        if ($enableDelta) {
+          $packArgs += "--delta"
+          $packArgs += "BestSize"
+          Write-Host "✅ 增量更新包生成已启用（压缩模式: BestSize）"
+        } else {
+          Write-Host "📦 只生成完整安装包"
+        }
+
+        # 执行打包
+        Write-Host "`n🔨 执行 Velopack 打包..."
+        & vpk @packArgs
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "❌ 打包失败，退出码: $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+
+        Write-Host "`n✅ 打包完成！"
+        Write-Host "`n📦 生成的文件列表:"
+        Get-ChildItem ./releases | ForEach-Object {
+          $size = if ($_.Length -gt 1MB) {
+            "{0:N2} MB" -f ($_.Length / 1MB)
+          } else {
+            "{0:N2} KB" -f ($_.Length / 1KB)
+          }
+          $isDelta = if ($_.Name -like "*-delta.nupkg") { " [增量包 ✨]" } else { "" }
+          $isFull = if ($_.Name -like "*-full.nupkg") { " [完整包]" } else { "" }
+          Write-Host "  ✓ $($_.Name) ($size)$isDelta$isFull"
+        }
+
+        # 统计增量包
+        $deltaFiles = Get-ChildItem ./releases -Filter "*-delta.nupkg"
+        if ($deltaFiles.Count -gt 0) {
+          Write-Host "`n🎉 成功生成 $($deltaFiles.Count) 个增量更新包"
+        } else {
+          Write-Host "`n📦 本次发布只包含完整安装包"
+        }
+
+        Write-Host "`n========================================="
+        Write-Host "Velopack 打包流程完成"
+        Write-Host "========================================="
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate Release Notes
+      id: release_notes
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $notes = @"
+        ## 🎉 分镜大师 v$version
+
+        ### ⚠️ 首次安装必读
+
+        本软件需要 **.NET 8 运行时**，首次使用请先安装：
+
+        **方式一：自动安装（推荐）**
+        - 直接运行 \`StoryboardSetup.exe\`，如果缺少运行时会自动提示下载
+
+        **方式二：手动安装**
+        - 下载 [.NET 8 桌面运行时](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)
+        - 选择 "桌面运行时 x64" 版本（约 55MB）
+        - 安装后即可使用本软件
+
+        > 💡 **提示**：只需安装一次，后续更新无需重新安装运行时
+
+        ### 📦 下载方式
+
+        #### 国内用户（推荐）
+        从 Gitee 下载，速度更快：
+        - 访问 [Gitee Release](https://gitee.com/nan1314/Storyboard/releases/tag/v$version)
+
+        #### 国外用户
+        从 GitHub 下载（本页面）
+
+        ### 📥 安装说明
+
+        1. 确保已安装 .NET 8 运行时（见上方说明）
+        2. 下载 \`StoryboardSetup.exe\`
+        3. 运行安装程序
+        4. 安装后支持自动更新功能
+
+        ### 🔄 自动更新
+
+        - ✅ 国内用户优先使用 Gitee 更新源
+        - ✅ 国外用户自动使用 GitHub 更新源
+        - ✅ 智能切换，确保更新成功
+        - ✅ 更新包小巧，下载速度快
+
+        ### 📝 更新内容
+
+        <!-- 请在此处添加更新日志 -->
+
+        ---
+
+        **注意**: 首次安装需要 .NET 8 Desktop Runtime，安装程序会自动提示下载。
+
+        **技术支持**: 微信 zxxl2025
+        "@
+
+        # 保存到文件
+        $notes | Out-File -FilePath release_notes.md -Encoding utf8
+
+        # 输出到 GitHub Actions
+        echo "RELEASE_NOTES<<EOF" >> $env:GITHUB_OUTPUT
+        echo $notes >> $env:GITHUB_OUTPUT
+        echo "EOF" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ./releases/*
+        draft: false
+        prerelease: false
+        body_path: release_notes.md
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-files-${{ steps.get_version.outputs.VERSION }}
+        path: ./releases/*
+        retention-days: 30
+
+    - name: Post-release notification
+      run: |
+        echo "✅ GitHub Release 创建成功！"
+        echo ""
+        echo "📦 Release 地址: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+        echo ""
+        echo "⚠️ 下一步：手动同步到 Gitee"
+        echo "1. 访问: https://gitee.com/nan1314/Storyboard/releases/new"
+        echo "2. 标签名称: ${{ github.ref_name }}"
+        echo "3. 上传 releases 目录中的所有文件"
+        echo "4. 点击'发布'"
+        echo ""
+        echo "💡 提示：可以使用 PowerShell 脚本自动下载并提示上传"
+        echo "   运行: .\scripts\quick-release.ps1 -Version ${{ steps.get_version.outputs.VERSION }}"
+      shell: pwsh

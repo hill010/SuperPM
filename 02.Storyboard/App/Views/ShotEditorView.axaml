@@ -1,0 +1,1818 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Storyboard.Models"
+             xmlns:conv="using:Storyboard.Converters"
+             xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             x:Class="Storyboard.Views.ShotEditorView"
+             x:DataType="m:ShotItem">
+
+    <Grid RowDefinitions="Auto,*" Background="#0f0f0f">
+        
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Padding="16" 
+                BorderBrush="#27272a" 
+                BorderThickness="0,0,0,1">
+            <Grid RowDefinitions="Auto,Auto">
+                <!-- Title Row -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                    <TextBlock Grid.Column="0" 
+                               Text="{Binding ShotNumber, StringFormat='分镜 #{0}'}" 
+                               FontSize="18" 
+                               FontWeight="SemiBold" 
+                               Foreground="#f5f5f5" />
+                    <Border Grid.Column="1" 
+                            Background="#27272a" 
+                            CornerRadius="4" 
+                            Padding="8,4">
+                        <TextBlock Text="{Binding Duration, StringFormat='{}{0:F1}s'}" 
+                                   FontSize="12" 
+                                   Foreground="#f5f5f5" />
+                    </Border>
+                </Grid>
+                
+                <!-- Quick AI Actions -->
+                <StackPanel Grid.Row="1" Spacing="6">
+                    <Button Classes="Secondary"
+                            HorizontalAlignment="Stretch"
+                            IsEnabled="{Binding IsAiParsing, Converter={StaticResource BoolNot}}"
+                            Command="{Binding AIParseCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                            <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                                      Width="16"
+                                      Height="16"
+                                      IsVisible="{Binding IsAiParsing, Converter={StaticResource BoolNot}}" />
+                            <ProgressBar IsIndeterminate="True"
+                                         Width="100"
+                                         Height="4"
+                                         IsVisible="{Binding IsAiParsing}" />
+                            <TextBlock Text="{Binding IsAiParsing, Converter={StaticResource AiParseButtonTextConverter}}"
+                                       FontSize="13"
+                                       FontWeight="{Binding IsAiParsing, Converter={StaticResource BoolToFontWeightConverter}}" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="{Binding AiParseStatusMessage}"
+                               Foreground="{StaticResource ErrorBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding AiParseStatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Tabs Content -->
+        <TabControl Grid.Row="1" 
+                SelectedIndex="{Binding SelectedTabIndex}"
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch">
+            <TabControl.Styles>
+                <Style Selector="TabControl">
+                    <Setter Property="Background" Value="Transparent" />
+                </Style>
+                <Style Selector="TabItem">
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="Foreground" Value="#71717a" />
+                    <Setter Property="Padding" Value="16,8" />
+                    <Setter Property="Background" Value="Transparent" />
+                </Style>
+                <Style Selector="TabItem:selected">
+                    <Setter Property="Foreground" Value="#f5f5f5" />
+                    <Setter Property="Background" Value="#18181b" />
+                </Style>
+                <Style Selector="TabItem:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="#18181b" />
+                </Style>
+            </TabControl.Styles>
+            
+            <!-- Image Generation -->
+            <TabItem Header="图片生成">
+                <Grid RowDefinitions="*,Auto">
+                    <!-- Scrollable Content -->
+                    <ScrollViewer Grid.Row="0" Padding="16,16,16,16" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalAlignment="Stretch">
+                        <StackPanel Spacing="16" Width="{Binding Path=Viewport.Width, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+
+                        <!-- First Frame Section -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="━━━━━━━━━━━━━ 首帧图片 ━━━━━━━━━━━━━"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5"
+                                           HorizontalAlignment="Center" />
+
+                                <!-- Prompt -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="📝 提示词 *"
+                                               FontSize="13"
+                                               Foreground="#f5f5f5"
+                                               FontWeight="Medium" />
+                                    <TextBox Text="{Binding FirstFramePrompt}"
+                                             HorizontalAlignment="Stretch"
+                                             AcceptsReturn="True"
+                                             TextWrapping="WrapWithOverflow"
+                                             MinHeight="120"
+                                             Watermark="例如：一只可爱的橘猫，穿着毛衣，温暖的室内光线..."
+                                             Background="#1a1a1a"
+                                             BorderBrush="#3f3f46" />
+                                </StackPanel>
+
+                                <!-- Professional Parameters (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleFirstFrameProfessionalParamsCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 专业参数（点击展开/收起）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <StackPanel Spacing="12" IsVisible="{Binding IsFirstFrameProfessionalParamsExpanded}">
+                                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                                <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4">
+                                                    <TextBlock Text="景别" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding FirstFrameShotType}"
+                                                             Watermark="特写/近景/中景/全景/远景"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4">
+                                                    <TextBlock Text="构图" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding FirstFrameComposition}"
+                                                             Watermark="三分法/对称/黄金分割"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="0" Grid.Row="1" Spacing="4">
+                                                    <TextBlock Text="光线" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding FirstFrameLightingType}"
+                                                             Watermark="自然光/柔光/侧光"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Grid.Row="1" Spacing="4">
+                                                    <TextBlock Text="色调" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding FirstFrameColorStyle}"
+                                                             Watermark="暖色调/冷色调/中性"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="0" Grid.Row="2" Spacing="4">
+                                                    <TextBlock Text="时间" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding FirstFrameTimeOfDay}"
+                                                             Watermark="白天/黄昏/夜晚"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Negative Prompt (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleFirstFrameNegativePromptCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 负面提示词（可选）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <TextBox Text="{Binding FirstFrameNegativePrompt}"
+                                                 IsVisible="{Binding IsFirstFrameNegativePromptExpanded}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="WrapWithOverflow"
+                                                 MinHeight="60"
+                                                 Watermark="模糊、低质量、变形..."
+                                                 Background="#1a1a1a"
+                                                 BorderBrush="#3f3f46" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Generation Settings -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="生成设置" FontSize="13" Foreground="#f5f5f5" FontWeight="Medium" />
+
+                                    <!-- Quality Level -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="清晰度等级" FontSize="12" Foreground="#a1a1aa" />
+                                        <ComboBox SelectedItem="{Binding ImageQuality}"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#1a1a1a"
+                                                  BorderBrush="#3f3f46">
+                                            <ComboBoxItem Content="2K - 中等清晰度（推荐）">2K</ComboBoxItem>
+                                            <ComboBoxItem Content="1K - 低清晰度">1K</ComboBoxItem>
+                                            <ComboBoxItem Content="4K - 高清晰度">4K</ComboBoxItem>
+                                        </ComboBox>
+                                        <TextBlock Text="💡 清晰度等级，API会自动决定最佳比例"
+                                                   Foreground="#71717a"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Custom Size (Optional) -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="自定义尺寸（可选）" FontSize="12" Foreground="#a1a1aa" />
+                                        <ComboBox SelectedItem="{Binding ImageSize}"
+                                                  ItemsSource="{Binding ImageSizeOptions}"
+                                                  IsEditable="True"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#1a1a1a"
+                                                  BorderBrush="#3f3f46">
+                                        </ComboBox>
+                                        <TextBlock Text="💡 填写后将覆盖清晰度等级，精确控制宽高比例"
+                                                   Foreground="#71717a"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Model Selection -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="模型" FontSize="12" Foreground="#a1a1aa" />
+                                        <TextBox Text="{Binding SelectedModel}"
+                                                 Watermark="留空使用默认"
+                                                 Background="#1a1a1a"
+                                                 BorderBrush="#3f3f46" />
+                                    </StackPanel>
+
+                                    <!-- Watermark Control -->
+                                    <CheckBox IsChecked="{Binding ImageWatermark}"
+                                              Margin="0,4,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="添加水印" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                            <TextBlock Text="在生成的图片上添加AI生成水印"
+                                                       Foreground="#71717a"
+                                                       FontSize="11"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                </StackPanel>
+
+                                <!-- Actions -->
+                                <Grid ColumnDefinitions="*,*">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            IsEnabled="{Binding IsFirstFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding GenerateFirstFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="生成" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            IsEnabled="{Binding IsFirstFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding RegenerateFirstFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="重新" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="{Binding FirstFrameGenerationMessage}"
+                                           Foreground="{StaticResource ErrorBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,0"
+                                           IsVisible="{Binding FirstFrameGenerationMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+
+                                <!-- Current Image Preview -->
+                                <Border Background="#0a0a0a"
+                                        BorderBrush="#3f3f46"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Height="200"
+                                        ClipToBounds="True">
+                                    <Panel>
+                                        <Image Source="{Binding FirstFrameImagePath, Converter={StaticResource PathToBitmapConverter}}"
+                                               Stretch="UniformToFill"
+                                               IsVisible="{Binding FirstFrameImagePath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                                        <TextBlock Text="暂无图片"
+                                                   Foreground="#52525b"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding FirstFrameImagePath, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}" />
+                                        <Border Background="#000000cc"
+                                                IsVisible="{Binding IsFirstFrameGenerating}">
+                                            <StackPanel HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Spacing="8">
+                                                <ProgressBar IsIndeterminate="True" Width="120" Height="4" />
+                                                <TextBlock Text="生成中..."
+                                                           FontSize="12"
+                                                           Foreground="#f5f5f5" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Panel>
+                                </Border>
+
+                                <!-- Image Upload/Select Actions -->
+                                <Grid ColumnDefinitions="*,*" Margin="0,8,0,0">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            Click="OnUploadFirstFrameClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="上传图片" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            Click="OnPickFirstFrameFromLibraryClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="资源库" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,*"
+                                      IsVisible="{Binding FirstFrameImagePath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                                    <Button Grid.Column="0"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.ViewFirstFrameImageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <TextBlock Text="查看" FontSize="11" />
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.OpenFirstFrameFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <TextBlock Text="打开文件夹" FontSize="11" />
+                                    </Button>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                    <TextBlock Text="历史生成"
+                                               FontSize="12"
+                                               Foreground="#71717a"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Classes="Ghost"
+                                            Margin="12,0,0,0"
+                                            HorizontalAlignment="Right"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.ShowResourceLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="查看更多历史记录" FontSize="11" />
+                                            <PathIcon Data="M8 5l8 8-8 8"
+                                                      Width="12"
+                                                      Height="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding FirstFrameAssetsOrdered}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:ShotAssetItem">
+                                                <Border BorderBrush="{Binding IsSelected, Converter={StaticResource SelectedBorderConverter}}"
+                                                        BorderThickness="1"
+                                                        Background="#0a0a0a"
+                                                        CornerRadius="6"
+                                                        Padding="6"
+                                                        Margin="0,0,8,8">
+                                                    <StackPanel Spacing="6" Width="120">
+                                                        <Border Height="70" CornerRadius="4" ClipToBounds="True">
+                                                            <Image Source="{Binding DisplayPath, Converter={StaticResource PathToBitmapConverter}}" Stretch="UniformToFill" />
+                                                        </Border>
+                                                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:HH:mm:ss}'}"
+                                                                   FontSize="10"
+                                                                   Foreground="#71717a" />
+                                                        <Button Classes="Ghost"
+                                                                x:CompileBindings="False"
+                                                                Padding="8,4"
+                                                                Command="{Binding DataContext.SelectAssetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}">
+                                                            <TextBlock Text="使用" FontSize="11" />
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Last Frame Section -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="━━━━━━━━━━━━━ 尾帧图片 ━━━━━━━━━━━━━"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5"
+                                           HorizontalAlignment="Center" />
+
+                                <!-- Prompt -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="📝 提示词 *"
+                                               FontSize="13"
+                                               Foreground="#f5f5f5"
+                                               FontWeight="Medium" />
+                                    <TextBox Text="{Binding LastFramePrompt}"
+                                             HorizontalAlignment="Stretch"
+                                             AcceptsReturn="True"
+                                             TextWrapping="WrapWithOverflow"
+                                             MinHeight="120"
+                                             Watermark="例如：橘猫抬起爪子，眼神温柔，温暖的室内光线..."
+                                             Background="#1a1a1a"
+                                             BorderBrush="#3f3f46" />
+                                </StackPanel>
+
+                                <!-- Professional Parameters (Collapsible) - Same as First Frame -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleLastFrameProfessionalParamsCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 专业参数（点击展开/收起）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <StackPanel Spacing="12" IsVisible="{Binding IsLastFrameProfessionalParamsExpanded}">
+                                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                                <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4">
+                                                    <TextBlock Text="景别" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding LastFrameShotType}"
+                                                             Watermark="特写/近景/中景/全景/远景"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4">
+                                                    <TextBlock Text="构图" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding LastFrameComposition}"
+                                                             Watermark="三分法/对称/黄金分割"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="0" Grid.Row="1" Spacing="4">
+                                                    <TextBlock Text="光线" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding LastFrameLightingType}"
+                                                             Watermark="自然光/柔光/侧光"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Grid.Row="1" Spacing="4">
+                                                    <TextBlock Text="色调" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding LastFrameColorStyle}"
+                                                             Watermark="暖色调/冷色调/中性"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="0" Grid.Row="2" Spacing="4">
+                                                    <TextBlock Text="时间" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding LastFrameTimeOfDay}"
+                                                             Watermark="白天/黄昏/夜晚"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Negative Prompt (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleLastFrameNegativePromptCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 负面提示词（可选）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <TextBox Text="{Binding LastFrameNegativePrompt}"
+                                                 IsVisible="{Binding IsLastFrameNegativePromptExpanded}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="WrapWithOverflow"
+                                                 MinHeight="60"
+                                                 Watermark="模糊、低质量、变形..."
+                                                 Background="#1a1a1a"
+                                                 BorderBrush="#3f3f46" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Generation Settings -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="生成设置" FontSize="13" Foreground="#f5f5f5" FontWeight="Medium" />
+
+                                    <!-- Quality Level -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="清晰度等级" FontSize="12" Foreground="#a1a1aa" />
+                                        <ComboBox SelectedItem="{Binding ImageQuality}"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#1a1a1a"
+                                                  BorderBrush="#3f3f46">
+                                            <ComboBoxItem Content="2K - 中等清晰度（推荐）">2K</ComboBoxItem>
+                                            <ComboBoxItem Content="1K - 低清晰度">1K</ComboBoxItem>
+                                            <ComboBoxItem Content="4K - 高清晰度">4K</ComboBoxItem>
+                                        </ComboBox>
+                                        <TextBlock Text="💡 清晰度等级，API会自动决定最佳比例"
+                                                   Foreground="#71717a"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Custom Size (Optional) -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="自定义尺寸（可选）" FontSize="12" Foreground="#a1a1aa" />
+                                        <ComboBox SelectedItem="{Binding ImageSize}"
+                                                  ItemsSource="{Binding ImageSizeOptions}"
+                                                  IsEditable="True"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#1a1a1a"
+                                                  BorderBrush="#3f3f46">
+                                        </ComboBox>
+                                        <TextBlock Text="💡 填写后将覆盖清晰度等级，精确控制宽高比例"
+                                                   Foreground="#71717a"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Model Selection -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="模型" FontSize="12" Foreground="#a1a1aa" />
+                                        <TextBox Text="{Binding SelectedModel}"
+                                                 Watermark="留空使用默认"
+                                                 Background="#1a1a1a"
+                                                 BorderBrush="#3f3f46" />
+                                    </StackPanel>
+
+                                    <!-- Watermark Control -->
+                                    <CheckBox IsChecked="{Binding ImageWatermark}"
+                                              Margin="0,4,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="添加水印" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                            <TextBlock Text="在生成的图片上添加AI生成水印"
+                                                       Foreground="#71717a"
+                                                       FontSize="11"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                </StackPanel>
+
+                                <!-- Actions -->
+                                <Grid ColumnDefinitions="*,*">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            IsEnabled="{Binding IsLastFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding GenerateLastFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="生成" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            IsEnabled="{Binding IsLastFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding RegenerateLastFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="重新" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="{Binding LastFrameGenerationMessage}"
+                                           Foreground="{StaticResource ErrorBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,0"
+                                           IsVisible="{Binding LastFrameGenerationMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+
+                                <!-- Current Image Preview -->
+                                <Border Background="#0a0a0a"
+                                        BorderBrush="#3f3f46"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Height="200"
+                                        ClipToBounds="True">
+                                    <Panel>
+                                        <Image Source="{Binding LastFrameImagePath, Converter={StaticResource PathToBitmapConverter}}"
+                                               Stretch="UniformToFill"
+                                               IsVisible="{Binding LastFrameImagePath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                                        <TextBlock Text="暂无图片"
+                                                   Foreground="#52525b"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding LastFrameImagePath, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}" />
+                                        <Border Background="#000000cc"
+                                                IsVisible="{Binding IsLastFrameGenerating}">
+                                            <StackPanel HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Spacing="8">
+                                                <ProgressBar IsIndeterminate="True" Width="120" Height="4" />
+                                                <TextBlock Text="生成中..."
+                                                           FontSize="12"
+                                                           Foreground="#f5f5f5" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Panel>
+                                </Border>
+
+                                <!-- Image Upload/Select Actions -->
+                                <Grid ColumnDefinitions="*,*" Margin="0,8,0,0">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            Click="OnUploadLastFrameClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="上传图片" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            Click="OnPickLastFrameFromLibraryClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock Text="资源库" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,*"
+                                      IsVisible="{Binding LastFrameImagePath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                                    <Button Grid.Column="0"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.ViewLastFrameImageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <TextBlock Text="查看" FontSize="11" />
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.OpenLastFrameFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <TextBlock Text="打开文件夹" FontSize="11" />
+                                    </Button>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                    <TextBlock Text="历史生成"
+                                               FontSize="12"
+                                               Foreground="#71717a"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Classes="Ghost"
+                                            Margin="12,0,0,0"
+                                            HorizontalAlignment="Right"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.ShowResourceLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="查看更多历史记录" FontSize="11" />
+                                            <PathIcon Data="M8 5l8 8-8 8"
+                                                      Width="12"
+                                                      Height="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding LastFrameAssetsOrdered}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:ShotAssetItem">
+                                                <Border BorderBrush="{Binding IsSelected, Converter={StaticResource SelectedBorderConverter}}"
+                                                        BorderThickness="1"
+                                                        Background="#0a0a0a"
+                                                        CornerRadius="6"
+                                                        Padding="6"
+                                                        Margin="0,0,8,8">
+                                                    <StackPanel Spacing="6" Width="120">
+                                                        <Border Height="70" CornerRadius="4" ClipToBounds="True">
+                                                            <Image Source="{Binding DisplayPath, Converter={StaticResource PathToBitmapConverter}}" Stretch="UniformToFill" />
+                                                        </Border>
+                                                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:HH:mm:ss}'}"
+                                                                   FontSize="10"
+                                                                   Foreground="#71717a" />
+                                                        <Button Classes="Ghost"
+                                                                x:CompileBindings="False"
+                                                                Padding="8,4"
+                                                                Command="{Binding DataContext.SelectAssetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}">
+                                                            <TextBlock Text="使用" FontSize="11" />
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Height="80" Background="Transparent" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Fixed Bottom Actions -->
+                <Border Grid.Row="1"
+                        Margin="16,0,16,16"
+                        Padding="20"
+                        CornerRadius="16"
+                        BorderBrush="#8b5cf6"
+                        BorderThickness="1"
+                        BoxShadow="0 10 25 0 #00000080">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#251b3c" Offset="0" />
+                            <GradientStop Color="#181b2c" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,24,*">
+                            <!-- First Frame Actions -->
+                            <StackPanel Grid.Column="0" Spacing="8">
+                                <TextBlock Text="首帧"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5"
+                                           HorizontalAlignment="Center" />
+                                <Grid ColumnDefinitions="*,*">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            MinHeight="36"
+                                            IsEnabled="{Binding IsFirstFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding GenerateFirstFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            
+                                            <TextBlock Text="生成" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            MinHeight="36"
+                                            IsEnabled="{Binding IsFirstFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding RegenerateFirstFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            
+                                            <TextBlock Text="重新" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="{Binding FirstFrameGenerationMessage}"
+                                           Foreground="{StaticResource ErrorBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           HorizontalAlignment="Center"
+                                           IsVisible="{Binding FirstFrameGenerationMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+
+                            <!-- Divider -->
+                            <Border Grid.Column="1"
+                                    Width="1"
+                                    Background="#3f3f46"
+                                    Margin="8,0" />
+
+                            <!-- Last Frame Actions -->
+                            <StackPanel Grid.Column="2" Spacing="8">
+                                <TextBlock Text="尾帧"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5"
+                                           HorizontalAlignment="Center" />
+                                <Grid ColumnDefinitions="*,*">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,0,4,0"
+                                            MinHeight="36"
+                                            IsEnabled="{Binding IsLastFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding GenerateLastFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            
+                                            <TextBlock Text="生成" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="4,0,0,0"
+                                            MinHeight="36"
+                                            IsEnabled="{Binding IsLastFrameGenerating, Converter={StaticResource BoolNot}}"
+                                            Command="{Binding RegenerateLastFrameCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            
+                                            <TextBlock Text="重新" FontSize="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="{Binding LastFrameGenerationMessage}"
+                                           Foreground="{StaticResource ErrorBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           HorizontalAlignment="Center"
+                                           IsVisible="{Binding LastFrameGenerationMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 3: Video Generation -->
+           <TabItem Header="视频生成">
+                <ScrollViewer Padding="16,16,16,64"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalAlignment="Stretch">
+                    <StackPanel Spacing="16"
+                                Width="{Binding Path=Viewport.Width, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+
+                        <!-- Generation Mode Section -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="🎬 生成模式"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5" />
+
+                                <!-- Text to Video Mode -->
+                                <RadioButton GroupName="VideoMode"
+                                             IsChecked="{Binding IsTextToVideoMode}">
+                                    <StackPanel>
+                                        <TextBlock Text="纯文本生成视频" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                        <TextBlock Text="仅使用文字描述生成视频"
+                                                   Foreground="#71717a" FontSize="11" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </RadioButton>
+
+                                <!-- First Frame Mode -->
+                                <RadioButton GroupName="VideoMode"
+                                             IsChecked="{Binding UseFirstFrameReference}">
+                                    <StackPanel>
+                                        <TextBlock Text="基于首帧图片生成" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                        <TextBlock Text="从指定的首帧图片开始生成视频动画"
+                                                   Foreground="#71717a" FontSize="11" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </RadioButton>
+
+                                <!-- Last Frame Option -->
+                                <CheckBox Content="同时使用尾帧图片（首尾帧过渡动画）"
+                                          IsChecked="{Binding UseLastFrameReference}"
+                                          IsEnabled="{Binding UseFirstFrameReference}"
+                                          Margin="20,5,0,0"
+                                          Foreground="#a1a1aa"
+                                          FontSize="12" />
+
+                                <!-- Reference Images Mode -->
+                                <RadioButton GroupName="VideoMode"
+                                             IsChecked="{Binding UseReferenceImages}">
+                                    <StackPanel>
+                                        <TextBlock Text="参考图模式（角色一致性）" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                        <TextBlock Text="精准提取参考图的人物、服装、场景特征（1-4张）"
+                                                   Foreground="#71717a" FontSize="11" Margin="0,2,0,0" />
+                                        <TextBlock Text="⚠️ 此模式不支持分辨率、宽高比、固定镜头参数"
+                                                   Foreground="Orange" FontSize="10" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+                        <!-- Main Prompt Section -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <!-- Main Prompt -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="📝 主提示词 *"
+                                               FontSize="13"
+                                               Foreground="#f5f5f5"
+                                               FontWeight="Medium" />
+                                    <TextBox Text="{Binding VideoPrompt}"
+                                             HorizontalAlignment="Stretch"
+                                             AcceptsReturn="True"
+                                             TextWrapping="WrapWithOverflow"
+                                             MinHeight="120"
+                                             Watermark="例如：一只橘猫在温暖的室内，慢慢抬起爪子，电影感..."
+                                             Background="#1a1a1a"
+                                             BorderBrush="#3f3f46" />
+                                </StackPanel>
+
+                                <!-- Scene/Action/Style (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleVideoSceneActionCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 场景/动作/风格（点击展开 - 辅助生成主提示词）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <StackPanel Spacing="12" IsVisible="{Binding IsVideoSceneActionExpanded}">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="场景描述" FontSize="12" Foreground="#a1a1aa" />
+                                                <TextBox Text="{Binding SceneDescription}"
+                                                         AcceptsReturn="True"
+                                                         TextWrapping="WrapWithOverflow"
+                                                         MinHeight="60"
+                                                         Watermark="温暖的室内，柔和的光线..."
+                                                         Background="#1a1a1a"
+                                                         BorderBrush="#3f3f46" />
+                                            </StackPanel>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="动作描述" FontSize="12" Foreground="#a1a1aa" />
+                                                <TextBox Text="{Binding ActionDescription}"
+                                                         AcceptsReturn="True"
+                                                         TextWrapping="WrapWithOverflow"
+                                                         MinHeight="60"
+                                                         Watermark="橘猫慢慢抬起爪子，眨眼..."
+                                                         Background="#1a1a1a"
+                                                         BorderBrush="#3f3f46" />
+                                            </StackPanel>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="风格描述" FontSize="12" Foreground="#a1a1aa" />
+                                                <TextBox Text="{Binding StyleDescription}"
+                                                         AcceptsReturn="True"
+                                                         TextWrapping="WrapWithOverflow"
+                                                         MinHeight="60"
+                                                         Watermark="电影感，温馨治愈..."
+                                                         Background="#1a1a1a"
+                                                         BorderBrush="#3f3f46" />
+                                            </StackPanel>
+                                            <Button Classes="Secondary"
+                                                    HorizontalAlignment="Stretch"
+                                                    Command="{Binding CombineToMainPromptCommand}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                                    <PathIcon Data="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" Width="12" Height="12" />
+                                                    <TextBlock Text="↑ 组合到主提示词" FontSize="12" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Professional Parameters (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleVideoProfessionalParamsCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 专业参数（点击展开/收起）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <StackPanel Spacing="12" IsVisible="{Binding IsVideoProfessionalParamsExpanded}">
+                                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                                <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4">
+                                                    <TextBlock Text="运镜方式" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding CameraMovement}"
+                                                             Watermark="推进/拉远/平移/旋转"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4">
+                                                    <TextBlock Text="拍摄风格" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding ShootingStyle}"
+                                                             Watermark="电影感/纪录片/动画"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="0" Grid.Row="1" Spacing="4">
+                                                    <TextBlock Text="摄影机运动" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding CameraMovement}"
+                                                             Watermark="缓慢推进/快速移动"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Grid.Row="1" Spacing="4">
+                                                    <TextBlock Text="视频特效" FontSize="12" Foreground="#a1a1aa" />
+                                                    <TextBox Text="{Binding VideoEffect}"
+                                                             Watermark="无/慢动作/快进"
+                                                             Background="#1a1a1a"
+                                                             BorderBrush="#3f3f46" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Negative Prompt (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleVideoNegativePromptCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 负面提示词（可选）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <TextBox Text="{Binding VideoNegativePrompt}"
+                                                 IsVisible="{Binding IsVideoNegativePromptExpanded}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="WrapWithOverflow"
+                                                 MinHeight="60"
+                                                 Watermark="抖动、模糊、失真..."
+                                                 Background="#1a1a1a"
+                                                 BorderBrush="#3f3f46" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Generation Settings -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="生成设置" FontSize="13" Foreground="#f5f5f5" FontWeight="Medium" />
+
+                                    <!-- Aspect Ratio -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="宽高比" FontSize="12" Foreground="#a1a1aa" />
+                                        <ComboBox SelectedItem="{Binding VideoRatio}"
+                                                  IsEnabled="{Binding IsNotReferenceMode}"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#1a1a1a"
+                                                  BorderBrush="#3f3f46">
+                                            <system:String>adaptive</system:String>
+                                            <system:String>16:9</system:String>
+                                            <system:String>9:16</system:String>
+                                            <system:String>1:1</system:String>
+                                            <system:String>4:3</system:String>
+                                            <system:String>3:4</system:String>
+                                            <system:String>21:9</system:String>
+                                        </ComboBox>
+                                        <TextBlock Text="⚠️ 参考图模式不支持宽高比设置"
+                                                   Foreground="Orange"
+                                                   FontSize="11"
+                                                   Margin="0,5,0,0"
+                                                   IsVisible="{Binding UseReferenceImages}" />
+                                    </StackPanel>
+
+                                    <!-- Resolution -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="分辨率" FontSize="12" Foreground="#a1a1aa" />
+                                        <ComboBox SelectedItem="{Binding VideoResolution}"
+                                                  IsEnabled="{Binding SupportsResolution}"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#1a1a1a"
+                                                  BorderBrush="#3f3f46">
+                                            <system:String>1080p</system:String>
+                                            <system:String>720p</system:String>
+                                            <system:String>480p</system:String>
+                                        </ComboBox>
+                                        <TextBlock Text="{Binding ResolutionWarning}"
+                                                   Foreground="Orange"
+                                                   FontSize="11"
+                                                   Margin="0,5,0,0"
+                                                   IsVisible="{Binding ResolutionWarning, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                                    </StackPanel>
+
+                                    <!-- Duration / Frames -->
+                                    <StackPanel Spacing="4">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Grid.Column="0" Text="视频时长" FontSize="12" Foreground="#a1a1aa" />
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                                                <RadioButton Content="按秒数"
+                                                             IsChecked="{Binding UseDurationMode}"
+                                                             GroupName="DurationMode"
+                                                             FontSize="11"
+                                                             Foreground="#a1a1aa" />
+                                                <RadioButton Content="按帧数"
+                                                             IsChecked="{Binding UseDurationMode, Converter={StaticResource BoolNot}}"
+                                                             GroupName="DurationMode"
+                                                             FontSize="11"
+                                                             Foreground="#a1a1aa" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Duration Slider -->
+                                        <StackPanel Spacing="4" IsVisible="{Binding UseDurationMode}">
+                                            <Slider Value="{Binding Duration}"
+                                                    Minimum="{Binding MinDuration}"
+                                                    Maximum="12"
+                                                    TickFrequency="0.5"
+                                                    IsSnapToTickEnabled="True" />
+                                            <TextBlock HorizontalAlignment="Center" Foreground="#f5f5f5">
+                                                <Run Text="{Binding Duration, StringFormat='{}{0:F1}'}" />
+                                                <Run Text=" 秒" />
+                                                <Run Text=" (约 " Foreground="#71717a" />
+                                                <Run Text="{Binding EstimatedFrames}" Foreground="#71717a" />
+                                                <Run Text=" 帧)" Foreground="#71717a" />
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <!-- Frames Input -->
+                                        <StackPanel Spacing="4" IsVisible="{Binding UseDurationMode, Converter={StaticResource BoolNot}}">
+                                            <NumericUpDown Value="{Binding VideoFrames}"
+                                                           Minimum="29"
+                                                           Maximum="289"
+                                                           Increment="4"
+                                                           Background="#1a1a1a"
+                                                           BorderBrush="#3f3f46" />
+                                            <TextBlock Text="⚠️ 帧数必须符合 25+4n 格式（如 29, 33, 37, 41...）"
+                                                       Foreground="Orange"
+                                                       FontSize="10"
+                                                       Margin="0,5,0,0" />
+                                        </StackPanel>
+
+                                        <TextBlock Text="{Binding DurationHint}"
+                                                   Foreground="#71717a"
+                                                   FontSize="11"
+                                                   Margin="0,5,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Model Selection -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="模型" FontSize="12" Foreground="#a1a1aa" />
+                                        <TextBox Text="{Binding SelectedModel}"
+                                                 Watermark="留空使用默认"
+                                                 Background="#1a1a1a"
+                                                 BorderBrush="#3f3f46" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Advanced Options (Collapsible) -->
+                                <Border BorderBrush="#3f3f46" BorderThickness="1" CornerRadius="6" Padding="12" Background="#0f0f0f">
+                                    <StackPanel Spacing="8">
+                                        <Button Classes="Ghost"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ToggleVideoAdvancedOptionsCommand}"
+                                                Padding="0">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="▼ 高级选项（可选）"
+                                                           FontSize="13"
+                                                           Foreground="#a1a1aa"
+                                                           HorizontalAlignment="Left" />
+                                                <PathIcon Grid.Column="1"
+                                                          Data="M7 10l5 5 5-5z"
+                                                          Width="16"
+                                                          Height="16"
+                                                          Foreground="#a1a1aa" />
+                                            </Grid>
+                                        </Button>
+
+                                        <StackPanel Spacing="12" IsVisible="{Binding IsVideoAdvancedOptionsExpanded}">
+                                            <!-- Audio Generation -->
+                                            <CheckBox IsChecked="{Binding GenerateAudio}"
+                                                      IsEnabled="{Binding SupportsAudio}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="生成音频 🎵" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                                </StackPanel>
+                                            </CheckBox>
+                                            <TextBlock Text="为视频生成配乐和音效（仅 Seedance 1.5 Pro 支持）"
+                                                       Foreground="#71717a"
+                                                       FontSize="11"
+                                                       Margin="20,-8,0,0" />
+                                            <TextBlock Text="⚠️ 当前模型不支持音频生成"
+                                                       Foreground="Orange"
+                                                       FontSize="11"
+                                                       Margin="20,-8,0,0"
+                                                       IsVisible="{Binding SupportsAudio, Converter={StaticResource BoolNot}}" />
+
+                                            <!-- Camera Fixed -->
+                                            <CheckBox IsChecked="{Binding CameraFixed}"
+                                                      IsEnabled="{Binding IsNotReferenceMode}">
+                                                <StackPanel>
+                                                    <TextBlock Text="固定镜头" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                                    <TextBlock Text="禁止镜头移动，保持静态视角"
+                                                               Foreground="#71717a"
+                                                               FontSize="11"
+                                                               Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </CheckBox>
+
+                                            <!-- Watermark -->
+                                            <CheckBox IsChecked="{Binding Watermark}">
+                                                <StackPanel>
+                                                    <TextBlock Text="添加水印" FontWeight="SemiBold" Foreground="#f5f5f5" />
+                                                    <TextBlock Text="在生成的视频上添加AI生成水印"
+                                                               Foreground="#71717a"
+                                                               FontSize="11"
+                                                               Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </CheckBox>
+
+                                            <!-- Custom Seed -->
+                                            <CheckBox IsChecked="{Binding UseCustomSeed}"
+                                                      Content="使用自定义随机种子"
+                                                      Foreground="#f5f5f5" />
+                                            <StackPanel Spacing="4" IsVisible="{Binding UseCustomSeed}">
+                                                <TextBlock Text="Seed" FontSize="12" Foreground="#a1a1aa" />
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <NumericUpDown Grid.Column="0"
+                                                                   Value="{Binding Seed}"
+                                                                   Minimum="0"
+                                                                   Maximum="2147483647"
+                                                                   Increment="1"
+                                                                   Watermark="随机"
+                                                                   Background="#1a1a1a"
+                                                                   BorderBrush="#3f3f46"
+                                                                   Margin="0,0,8,0" />
+                                                    <Button Grid.Column="1"
+                                                            Classes="Secondary"
+                                                            Content="随机"
+                                                            Command="{Binding GenerateRandomSeedCommand}"
+                                                            Padding="12,6" />
+                                                </Grid>
+                                                <TextBlock Text="使用相同的种子可以生成相似的视频"
+                                                           Foreground="#71717a"
+                                                           FontSize="11"
+                                                           Margin="0,5,0,0" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Button Classes="Primary"
+                                        HorizontalAlignment="Stretch"
+                                        IsEnabled="{Binding CanGenerateVideoNow}"
+                                        Command="{Binding GenerateVideoCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                        <PathIcon Data="M8 5v14l11-7z" Width="14" Height="14" />
+                                        <TextBlock Text="生成视频" FontSize="13" />
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Text="{Binding VideoGenerationMessage}"
+                                           Foreground="{StaticResource ErrorBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,0"
+                                           IsVisible="{Binding VideoGenerationMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Video Preview -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="视频预览"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5" />
+
+                                <Border Background="#0a0a0a"
+                                        BorderBrush="#3f3f46"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Height="240"
+                                        ClipToBounds="True">
+                                    <Grid>
+                                        <!-- Video thumbnail preview (shown when video exists but not playing) -->
+                                        <Image Source="{Binding FirstFrameImagePath, Converter={StaticResource PathToBitmapConverter}}"
+                                               Stretch="UniformToFill"
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch"
+                                               IsVisible="{Binding VideoOutputPath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+
+                                        <!-- Video player (on top of thumbnail) -->
+                                        <vlc:VideoView x:Name="VideoPlayer"
+                                                       HorizontalAlignment="Stretch"
+                                                       VerticalAlignment="Stretch"
+                                                       Width="{Binding $parent[Border].Bounds.Width}"
+                                                       Height="{Binding $parent[Border].Bounds.Height}" />
+
+                                        <!-- Placeholder when no video -->
+                                        <TextBlock Text="暂无视频"
+                                                   Foreground="#52525b"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding VideoOutputPath, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}" />
+
+                                        <!-- Generating overlay -->
+                                        <Border Background="#000000cc"
+                                                IsVisible="{Binding IsVideoGenerating}">
+                                            <StackPanel HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Spacing="8">
+                                                <ProgressBar IsIndeterminate="True" Width="140" Height="4" />
+                                                <TextBlock Text="生成中..."
+                                                           FontSize="12"
+                                                           Foreground="#f5f5f5" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Video Upload/Select Actions -->
+                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                    <!-- Row 0: Upload and Library buttons -->
+                                    <Button Grid.Row="0" Grid.Column="0"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Click="OnUploadVideoClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" Width="12" Height="12" />
+                                            <TextBlock Text="上传视频" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Row="0" Grid.Column="1"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Click="OnPickVideoFromLibraryClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" Width="12" Height="12" />
+                                            <TextBlock Text="从资源库选择" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Row 1: Play and Open Folder buttons (only shown when video exists) -->
+                                    <Button Grid.Row="1" Grid.Column="0"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Click="OnTogglePlayClicked"
+                                            IsVisible="{Binding VideoOutputPath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="播放 / 暂停" FontSize="11" />
+                                    </Button>
+                                    <Button Grid.Row="1" Grid.Column="1"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.OpenVideoFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            IsVisible="{Binding VideoOutputPath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="打开文件夹" FontSize="11" />
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Video Assets -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="历史生成"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="#f5f5f5"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Classes="Ghost"
+                                            Margin="12,0,0,0"
+                                            HorizontalAlignment="Right"
+                                            x:CompileBindings="False"
+                                            Command="{Binding DataContext.ShowResourceLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="查看更多历史记录" FontSize="11" />
+                                            <PathIcon Data="M8 5l8 8-8 8"
+                                                      Width="12"
+                                                      Height="12" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding VideoAssetsOrdered}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:ShotAssetItem">
+                                                <Border BorderBrush="{Binding IsSelected, Converter={StaticResource SelectedBorderConverter}}"
+                                                        BorderThickness="1"
+                                                        Background="#0a0a0a"
+                                                        CornerRadius="6"
+                                                        Padding="8"
+                                                        Margin="0,0,8,8">
+                                                    <StackPanel Spacing="6" Width="140">
+                                                        <Border Height="80" CornerRadius="4" ClipToBounds="True" Background="#0f0f0f" BorderBrush="#27272a" BorderThickness="1">
+                                                            <Panel>
+                                                                <Image Source="{Binding DisplayPath, Converter={StaticResource PathToBitmapConverter}}"
+                                                                       Stretch="UniformToFill"
+                                                                       IsVisible="{Binding DisplayPath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                                                                <StackPanel HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"
+                                                                            IsVisible="{Binding DisplayPath, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}">
+                                                                    <PathIcon Data="M18 3v2h-2V3H8v2H6V3H4v18h2v-2h2v2h8v-2h2v2h2V3h-2zM8 17H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V7h2v2zm10 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z"
+                                                                              Width="24"
+                                                                              Height="24"
+                                                                              Foreground="#3f3f46" />
+                                                                    <TextBlock Text="暂无缩略图"
+                                                                               FontSize="10"
+                                                                               Foreground="#52525b"
+                                                                               Margin="0,6,0,0"
+                                                                               HorizontalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </Panel>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   FontSize="12"
+                                                                   Foreground="#f5f5f5" />
+                                                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:HH:mm:ss}'}"
+                                                                   FontSize="10"
+                                                                   Foreground="#71717a" />
+                                                        <Button Classes="Ghost"
+                                                                x:CompileBindings="False"
+                                                                Padding="8,4"
+                                                                Command="{Binding DataContext.SelectAssetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}">
+                                                            <TextBlock Text="使用" FontSize="11" />
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Height="80" Background="Transparent" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Audio Generation (TTS) -->
+            <TabItem Header="配音生成">
+                <ScrollViewer Padding="16" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="16" MaxWidth="600">
+
+                        <!-- Audio Text Input -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="配音文本"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5" />
+                                <TextBox Text="{Binding AudioText}"
+                                         Watermark="输入配音文本..."
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="120"
+                                         MaxHeight="300"
+                                         VerticalContentAlignment="Top"
+                                         Background="#0f0f0f"
+                                         BorderBrush="#27272a"
+                                         Foreground="#f5f5f5" />
+                                <TextBlock Text="{Binding AudioText.Length, StringFormat='字符数：{0}'}"
+                                           FontSize="11"
+                                           Foreground="#71717a" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- TTS Settings -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="语音设置"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5" />
+
+                                <!-- Model Selection -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="模型"
+                                               FontSize="12"
+                                               Foreground="#a1a1aa" />
+                                    <ComboBox ItemsSource="{Binding TtsModelOptions}"
+                                              SelectedItem="{Binding TtsModel}"
+                                              HorizontalAlignment="Stretch"
+                                              Background="#0f0f0f"
+                                              BorderBrush="#27272a" />
+                                </StackPanel>
+
+                                <!-- Voice Selection -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="音色"
+                                               FontSize="12"
+                                               Foreground="#a1a1aa" />
+                                    <ComboBox ItemsSource="{Binding TtsVoiceOptions}"
+                                              SelectedItem="{Binding TtsVoice}"
+                                              HorizontalAlignment="Stretch"
+                                              Background="#0f0f0f"
+                                              BorderBrush="#27272a" />
+                                    <TextBlock FontSize="11" 
+                                               Foreground="#71717a" 
+                                               TextWrapping="Wrap"
+                                               Text="{Binding VoiceHelpText}" />
+                                </StackPanel>
+
+                                <!-- Speed Control -->
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="语速"
+                                                   FontSize="12"
+                                                   Foreground="#a1a1aa" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding TtsSpeed, StringFormat='{}{0:F2}x'}"
+                                                   FontSize="12"
+                                                   Foreground="#f5f5f5" />
+                                    </Grid>
+                                    <Slider Value="{Binding TtsSpeed}"
+                                            Minimum="0.25"
+                                            Maximum="4.0"
+                                            TickFrequency="0.25"
+                                            IsSnapToTickEnabled="True" />
+                                    <TextBlock Text="0.25x (最慢) - 1.0x (正常) - 4.0x (最快)"
+                                               FontSize="11"
+                                               Foreground="#71717a" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Audio Preview -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16"
+                                IsVisible="{Binding HasGeneratedAudio}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="已生成音频"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f5f5f5" />
+
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border Grid.Column="0"
+                                            Background="#27272a"
+                                            CornerRadius="6"
+                                            Padding="12"
+                                            Width="60"
+                                            Height="60">
+                                        <PathIcon Data="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"
+                                                  Width="24"
+                                                  Height="24"
+                                                  Foreground="#3b82f6" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding GeneratedAudioPath, Converter={StaticResource PathToFileNameConverter}}"
+                                                   FontSize="12"
+                                                   Foreground="#f5f5f5"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="11" Foreground="#71717a">
+                                            <Run Text="时长：" />
+                                            <Run Text="{Binding AudioDuration, StringFormat='{}{0:F2}秒'}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Audio Playback -->
+                                <StackPanel Spacing="6">
+                                    <ProgressBar x:Name="AudioPlaybackProgressBar"
+                                                 Minimum="0"
+                                                 Maximum="1"
+                                                 Value="0"
+                                                 Height="6" />
+                                    <TextBlock x:Name="AudioPlaybackTimeText"
+                                               Text="00:00 / 00:00"
+                                               FontSize="11"
+                                               Foreground="#71717a"
+                                               HorizontalAlignment="Right" />
+                                </StackPanel>
+
+                                <!-- Audio Actions -->
+                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                    <Button Grid.Column="0"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Click="OnToggleAudioPlayClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon x:Name="AudioPlayPauseIcon"
+                                                      Data="M8 5v14l11-7z"
+                                                      Width="12"
+                                                      Height="12" />
+                                            <TextBlock x:Name="AudioPlayPauseText" Text="播放" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="Secondary"
+                                            HorizontalAlignment="Stretch"
+                                            Click="OnStopAudioClicked">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M6 6h12v12H6z" Width="12" Height="12" />
+                                            <TextBlock Text="停止" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="2"
+                                            Classes="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding DeleteAudioCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                            <PathIcon Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" Width="12" Height="12" />
+                                            <TextBlock Text="删除" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Audio Actions -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <!-- Generate Button -->
+                            <Button Grid.Column="0"
+                                    Classes="Primary"
+                                    HorizontalAlignment="Stretch"
+                                    Height="40"
+                                    IsEnabled="{Binding IsGeneratingAudio, Converter={StaticResource BoolNot}}"
+                                    Command="{Binding RequestGenerateAudioCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                    <PathIcon Data="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"
+                                              Width="16"
+                                              Height="16"
+                                              IsVisible="{Binding IsGeneratingAudio, Converter={StaticResource BoolNot}}" />
+                                    <ProgressBar IsIndeterminate="True"
+                                                 Width="100"
+                                                 Height="4"
+                                                 IsVisible="{Binding IsGeneratingAudio}" />
+                                    <TextBlock Text="{Binding IsGeneratingAudio, Converter={StaticResource GeneratingAudioTextConverter}, FallbackValue='生成配音'}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Upload Audio -->
+                            <Button Grid.Column="1"
+                                    Classes="Secondary"
+                                    HorizontalAlignment="Stretch"
+                                    Height="40"
+                                    IsEnabled="{Binding IsGeneratingAudio, Converter={StaticResource BoolNot}}"
+                                    Click="OnUploadAudioClicked">
+                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                    <PathIcon Data="M19 9h-4V3H9v6H5l7 7 7-7zm-14 9h14v2H5z"
+                                              Width="14"
+                                              Height="14" />
+                                    <TextBlock Text="上传音频" FontSize="12" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Status Message -->
+                        <Border Background="#18181b"
+                                BorderBrush="#27272a"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="12"
+                                IsVisible="{Binding AudioStatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{Binding AudioStatusMessage}"
+                                       FontSize="12"
+                                       Foreground="#f5f5f5"
+                                       TextWrapping="Wrap" />
+                        </Border>
+
+                        <Border Height="80" Background="Transparent" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+    </Grid>
+
+</UserControl>

@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Storyboard Web Hi-Fi Design Board</title>
+  <style>
+    @font-face {
+      font-family: "MiSans VF";
+      src: url("../../01.AI_SplitMater/font/MiSans%20VF.ttf") format("truetype");
+      font-weight: 250 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: dark;
+      --bg-app: #f4f4f2;
+      --bg-panel: #ffffff;
+      --bg-panel-2: #f7f7f5;
+      --bg-control: #ffffff;
+      --bg-dark: #071014;
+      --bg-dark-2: #0b0e16;
+      --border: #d8d8d4;
+      --border-soft: #e7e7e2;
+      --text: #071014;
+      --text-2: #7a7a7a;
+      --text-3: #a3a3a3;
+      --brand: #2458ff;
+      --cyan: #22c55e;
+      --warn: #f4b860;
+      --danger: #d45a2b;
+      --shadow: 0 30px 90px rgba(7,16,20,.16);
+      --r: 16px;
+      font-family: "MiSans VF", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f0f0ee;
+      color: var(--text);
+    }
+
+    .board {
+      min-width: 1680px;
+      padding: 40px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+    }
+
+    .screen {
+      width: 780px;
+      height: 520px;
+      overflow: hidden;
+      border: 1px solid rgba(7,16,20,.06);
+      background: var(--bg-app);
+      box-shadow: var(--shadow);
+      position: relative;
+      border-radius: 34px;
+    }
+
+    .screen-title {
+      position: absolute;
+      top: 16px;
+      left: 18px;
+      z-index: 4;
+      font-size: 11px;
+      color: #7a7a7a;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      padding: 5px 9px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.76);
+      border: 1px solid rgba(216,216,212,.75);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar {
+      height: 48px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      color: #071014;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #071014;
+    }
+
+    .mark {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: #2458ff;
+      position: relative;
+    }
+
+    .mark:after {
+      content: "";
+      position: absolute;
+      inset: 5px 4px;
+      border: 1px solid rgba(255,255,255,.82);
+      border-left: 0;
+      border-right: 0;
+    }
+
+    .spacer { flex: 1; }
+    .muted { color: var(--text-2); }
+    .faint { color: var(--text-3); }
+    .mono { font-variant-numeric: tabular-nums; }
+
+    .btn {
+      height: 30px;
+      padding: 0 10px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--r);
+      color: #fff;
+      background: #071014;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      border-color: transparent;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .btn.ghost { background: transparent; color: inherit; }
+    .btn.warn { border-color: rgba(244,184,96,.4); color: var(--warn); }
+    .icon { width: 30px; padding: 0; }
+
+    .pill {
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+
+    .dot.good { background: var(--cyan); }
+    .dot.warn { background: var(--warn); }
+    .dot.bad { background: var(--danger); }
+
+    .input {
+      height: 34px;
+      border: 1px solid var(--border);
+      background: var(--bg-control);
+      color: var(--text-2);
+      border-radius: var(--r);
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .label {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+
+    .field {
+      min-height: 34px;
+      border: 1px solid var(--border);
+      background: var(--bg-control);
+      border-radius: var(--r);
+      padding: 9px 10px;
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .login {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      height: 100%;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(36,88,255,.5), transparent 36%),
+        linear-gradient(135deg, #02030a 0%, #071642 46%, #2458ff 140%);
+    }
+
+    .login-signal {
+      padding: 64px 44px 44px;
+      border-right: 0;
+      background: transparent;
+      color: #fff;
+    }
+
+    .login-signal h1 {
+      margin: 74px 0 14px;
+      font-size: 42px;
+      line-height: 1.04;
+      letter-spacing: 0;
+      max-width: 360px;
+    }
+
+    .login-signal p {
+      margin: 0;
+      color: #dde7ff;
+      font-size: 13px;
+      line-height: 1.7;
+      max-width: 360px;
+    }
+
+    .film-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 34px;
+      width: 330px;
+    }
+
+    .film-cell {
+      height: 60px;
+      border: 1px solid #273244;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 74% 18%, rgba(255,255,255,.25), transparent 26%),
+        linear-gradient(145deg, rgba(36,88,255,.62), rgba(2,3,10,.82) 70%);
+    }
+
+    .login-form {
+      padding: 42px;
+      background: #fff;
+      border-radius: 32px;
+      margin: 74px 34px;
+      align-self: center;
+      min-height: 372px;
+      box-shadow: 0 28px 90px rgba(0,0,0,.22);
+    }
+
+    .login-form h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: 0;
+      color: #071014;
+    }
+
+    .login-form .stack { display: grid; gap: 13px; margin-top: 26px; }
+
+    .topbar .btn:not(.primary) {
+      background: #fff;
+      color: #071014;
+      border-color: #071014;
+    }
+
+    .topbar .pill {
+      background: #f4f4f2;
+      color: #071014;
+      border-color: #e7e7e2;
+    }
+
+    .login-form .field,
+    .modal .field,
+    .permission .field {
+      background: #f7f7f5;
+      border-color: #e7e7e2;
+      color: #071014;
+    }
+
+    .projects-body {
+      padding: 76px 30px 30px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .project-card {
+      min-height: 178px;
+      border: 1px solid rgba(216,216,212,.88);
+      border-radius: 24px;
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      box-shadow: 0 18px 50px rgba(7,16,20,.06);
+    }
+
+    .thumb-row {
+      height: 68px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .thumb {
+      border: 0;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 72% 18%, rgba(255,255,255,.22), transparent 28%),
+        linear-gradient(150deg, #2458ff, #071642 62%, #02030a);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thumb:after {
+      content: "";
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      bottom: 10px;
+      height: 1px;
+      background: rgba(255,255,255,.22);
+      transform: rotate(-13deg);
+    }
+
+    .card-title { font-size: 13px; font-weight: 700; }
+    .meta-line { display: flex; gap: 8px; color: var(--text-3); font-size: 11px; }
+
+    .empty-state {
+      border: 1px dashed #3a4659;
+      background: rgba(255,255,255,.02);
+      border-radius: var(--r);
+      padding: 34px;
+      min-height: 230px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .empty-state h3 { margin: 0 0 8px; font-size: 17px; }
+    .empty-state p { margin: 0 0 18px; color: var(--text-2); font-size: 12px; }
+
+    .work-main {
+      height: calc(100% - 48px);
+      display: grid;
+      grid-template-columns: 176px 1fr 220px;
+    }
+
+    .sidebar, .inspector {
+      background: var(--bg-dark-2);
+      border-right: 1px solid var(--border-soft);
+      padding: 14px;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    .inspector {
+      border-right: 0;
+      border-left: 1px solid var(--border-soft);
+      background: #fff;
+      color: #071014;
+    }
+
+    .sidebar .field {
+      background: #121722;
+      border-color: rgba(255,255,255,.08);
+      color: #aebbe8;
+    }
+
+    .sidebar .pill {
+      border-color: rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: #aebbe8;
+    }
+
+    .inspector .field {
+      background: #f7f7f5;
+      border-color: #e7e7e2;
+      color: #071014;
+    }
+
+    .nav-row {
+      height: 32px;
+      border-radius: 6px;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px;
+      font-size: 12px;
+    }
+
+    .nav-row.active {
+      background: rgba(108,124,255,.13);
+      color: var(--text);
+      border: 1px solid rgba(108,124,255,.25);
+    }
+
+    .script-box {
+      margin-top: 16px;
+      border-top: 1px solid var(--border-soft);
+      padding-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .shot-area {
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tab {
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-2);
+    }
+
+    .tab.active {
+      color: var(--text);
+      background: rgba(108,124,255,.14);
+      border-color: rgba(108,124,255,.42);
+    }
+
+    .shot-card {
+      border: 1px solid rgba(216,216,212,.9);
+      background: #fff;
+      border-radius: 20px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 42px 122px 1fr 88px;
+      gap: 10px;
+      align-items: center;
+      min-height: 86px;
+      margin-bottom: 9px;
+    }
+
+    .shot-card.selected {
+      border-color: rgba(36,88,255,.65);
+      box-shadow: inset 3px 0 0 var(--brand);
+    }
+
+    .shot-no {
+      color: #071014;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .shot-copy {
+      display: grid;
+      gap: 4px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .frame-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .mini-frame {
+      height: 52px;
+      border-radius: 14px;
+      border: 1px solid #d8d8d4;
+      background: #f4f4f2;
+      display: grid;
+      place-items: center;
+      color: var(--text-3);
+      font-size: 10px;
+    }
+
+    .mini-frame.ready {
+      background:
+        radial-gradient(circle at 78% 20%, rgba(255,255,255,.26), transparent 26%),
+        linear-gradient(145deg, #2458ff, #071642 70%);
+      color: #fff;
+      border: 0;
+    }
+
+    .mini-frame.fail {
+      border-color: rgba(242,109,109,.42);
+      color: var(--danger);
+    }
+
+    .inspect-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .inspect-head h3 { margin: 0; font-size: 14px; }
+    .panel-group { display: grid; gap: 10px; margin-bottom: 14px; }
+
+    .queue-drawer {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 360px;
+      height: 350px;
+      background: #071014;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 28px 0 0 0;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .queue-drawer .btn {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.12);
+      color: #fff;
+    }
+
+    .job {
+      border: 1px solid var(--border-soft);
+      border-radius: var(--r);
+      background: rgba(255,255,255,.025);
+      padding: 10px;
+      display: grid;
+      gap: 7px;
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 5px;
+      border-radius: 99px;
+      background: #222b3a;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: var(--brand);
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(7,16,20,.58);
+      display: grid;
+      place-items: center;
+      padding-top: 26px;
+    }
+
+    .modal {
+      width: 430px;
+      border: 1px solid rgba(216,216,212,.9);
+      border-radius: 32px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .modal h3 { margin: 0 0 8px; font-size: 22px; color: #071014; }
+    .modal p { margin: 0 0 16px; color: var(--text-2); font-size: 12px; line-height: 1.6; }
+
+    .price-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .price {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: #f7f7f5;
+      padding: 12px;
+      min-height: 92px;
+    }
+
+    .permission {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 40px;
+      background: var(--bg-app);
+    }
+
+    .permission h2 { margin: 0 0 10px; font-size: 22px; }
+    .permission p { margin: 0 0 20px; color: var(--text-2); font-size: 13px; line-height: 1.6; max-width: 430px; }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .track {
+      height: 66px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: #0b1018;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px;
+    }
+
+    .clip {
+      height: 38px;
+      border-radius: 6px;
+      background: rgba(108,124,255,.22);
+      border: 1px solid rgba(108,124,255,.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .asset {
+      height: 86px;
+      border: 1px solid #303a4d;
+      border-radius: var(--r);
+      background:
+        linear-gradient(150deg, rgba(36,214,198,.2), rgba(108,124,255,.12)),
+        #101722;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .asset span {
+      position: absolute;
+      left: 8px;
+      bottom: 7px;
+      font-size: 10px;
+      color: var(--text-2);
+    }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <section class="screen">
+      <div class="screen-title">01 Login / Register</div>
+      <div class="login">
+        <div class="login-signal">
+          <div class="brand"><span class="mark"></span>Storyboard Web</div>
+          <h1>把脚本变成可编辑的分镜工作台</h1>
+          <p>面向外部创作者的 AI 分镜 SaaS。登录后进入个人项目，不做营销长页。</p>
+          <div class="film-grid">
+            <div class="film-cell"></div><div class="film-cell"></div><div class="film-cell"></div>
+            <div class="film-cell"></div><div class="film-cell"></div><div class="film-cell"></div>
+          </div>
+        </div>
+        <div class="login-form">
+          <h2>登录或注册</h2>
+          <div class="muted" style="font-size:12px">新用户领取试用积分，项目和资产默认私有。</div>
+          <div class="stack">
+            <div><div class="label">邮箱</div><div class="field">creator@example.com</div></div>
+            <div><div class="label">密码</div><div class="field">••••••••••••</div></div>
+            <div class="btn primary">登录并进入项目</div>
+            <div class="btn ghost">使用 Google 登录</div>
+            <div class="faint" style="font-size:11px">忘记密码 · 服务条款 · 隐私政策</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="screen-title">02 Projects / Default</div>
+      <div class="topbar">
+        <div class="brand"><span class="mark"></span>Storyboard Web</div>
+        <div class="input" style="width:220px">搜索项目、状态或更新时间</div>
+        <div class="spacer"></div>
+        <div class="pill"><span class="dot warn"></span><span class="mono">136</span> credits</div>
+        <div class="btn primary">新建项目</div>
+        <div class="btn icon">H</div>
+      </div>
+      <div class="projects-body">
+        <div class="section-head">
+          <div>
+            <h2>个人项目</h2>
+            <div class="muted" style="font-size:12px">仅展示当前用户拥有的项目，第一版不开放团队入口。</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="pill"><span class="dot good"></span>Creator Trial</div>
+        </div>
+        <div class="project-grid">
+          <div class="project-card">
+            <div class="thumb-row"><div class="thumb"></div><div class="thumb"></div><div class="thumb"></div></div>
+            <div class="card-title">雨夜便利店短片</div>
+            <div class="meta-line"><span>18 shots</span><span>32 frames</span><span>2h ago</span></div>
+            <div class="pill"><span class="dot good"></span>图像生成完成</div>
+          </div>
+          <div class="project-card">
+            <div class="thumb-row"><div class="thumb"></div><div class="thumb"></div><div class="mini-frame">空</div></div>
+            <div class="card-title">新品广告概念片</div>
+            <div class="meta-line"><span>12 shots</span><span>8 frames</span><span>Yesterday</span></div>
+            <div class="pill"><span class="dot warn"></span>2 个任务排队</div>
+          </div>
+          <div class="project-card">
+            <div class="thumb-row"><div class="mini-frame">首帧</div><div class="mini-frame">尾帧</div><div class="mini-frame">参考</div></div>
+            <div class="card-title">动画分镜草案</div>
+            <div class="meta-line"><span>6 shots</span><span>0 frames</span><span>Apr 29</span></div>
+            <div class="pill">仅分镜表</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="screen-title">03 Workspace / Shot List</div>
+      <div class="topbar">
+        <div class="brand"><span class="mark"></span>雨夜便利店短片</div>
+        <div class="pill"><span class="dot good"></span>已保存</div>
+        <div class="spacer"></div>
+        <div class="pill"><span class="dot warn"></span><span class="mono">136</span> credits</div>
+        <div class="btn">任务队列</div>
+        <div class="btn primary">导出</div>
+      </div>
+      <div class="work-main">
+        <aside class="sidebar">
+          <div class="nav-row active">分镜列表</div>
+          <div class="nav-row">时间线草图</div>
+          <div class="nav-row">素材库</div>
+          <div class="nav-row">导出资料</div>
+          <div class="script-box">
+            <div class="label">脚本输入</div>
+            <div class="field" style="min-height:116px">雨夜，女孩推开便利店玻璃门。店内灯光忽明忽暗，她发现货架尽头站着一个熟悉的背影。</div>
+            <div class="pill"><span class="dot warn"></span>预计消耗 4 credits</div>
+            <div class="btn primary">生成分镜</div>
+          </div>
+        </aside>
+        <section class="shot-area">
+          <div class="tabs"><div class="tab active">分镜列表</div><div class="tab">时间线草图</div><div class="tab">批量选择 3</div></div>
+          <div class="shot-card selected">
+            <div class="shot-no">S01<br><span class="faint mono">04s</span></div>
+            <div class="frame-pair"><div class="mini-frame ready">首帧</div><div class="mini-frame">尾帧</div></div>
+            <div class="shot-copy"><strong>雨夜推门</strong><span class="muted">中景，玻璃门反射霓虹，角色从画面左侧进入。</span></div>
+            <div class="pill"><span class="dot good"></span>首帧完成</div>
+          </div>
+          <div class="shot-card">
+            <div class="shot-no">S02<br><span class="faint mono">05s</span></div>
+            <div class="frame-pair"><div class="mini-frame ready">首帧</div><div class="mini-frame ready">尾帧</div></div>
+            <div class="shot-copy"><strong>货架尽头</strong><span class="muted">长焦压缩空间，背影静止，灯管闪烁。</span></div>
+            <div class="pill"><span class="dot good"></span>已生成</div>
+          </div>
+          <div class="shot-card">
+            <div class="shot-no">S03<br><span class="faint mono">03s</span></div>
+            <div class="frame-pair"><div class="mini-frame">排队</div><div class="mini-frame fail">失败</div></div>
+            <div class="shot-copy"><strong>回头瞬间</strong><span class="muted">近景，角色的表情从迟疑转为惊讶。</span></div>
+            <div class="pill"><span class="dot bad"></span>尾帧已退款</div>
+          </div>
+        </section>
+        <aside class="inspector">
+          <div class="inspect-head"><h3>S01 镜头详情</h3><div class="btn icon">···</div></div>
+          <div class="panel-group">
+            <div><div class="label">核心内容</div><div class="field">女孩推开便利店门，雨水和霓虹反射在玻璃上。</div></div>
+            <div><div class="label">景别 / 镜头</div><div class="field">中景 · 稳定跟拍 · 4 秒</div></div>
+          </div>
+          <div class="panel-group">
+            <div><div class="label">首帧提示词</div><div class="field">cinematic rainy night convenience store, neon reflection, medium shot...</div></div>
+            <div class="pill"><span class="dot warn"></span>生成前冻结 8 credits</div>
+            <div class="btn primary">生成首帧</div>
+          </div>
+          <div class="panel-group">
+            <div><div class="label">尾帧提示词</div><div class="field">girl looking toward aisle, flickering fluorescent light...</div></div>
+            <div class="btn">重试尾帧</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="screen-title">04 Credit Insufficient / Billing</div>
+      <div class="topbar">
+        <div class="brand"><span class="mark"></span>雨夜便利店短片</div>
+        <div class="spacer"></div>
+        <div class="pill"><span class="dot warn"></span><span class="mono">12</span> credits</div>
+      </div>
+      <div class="work-main">
+        <aside class="sidebar"><div class="nav-row active">分镜列表</div><div class="nav-row">素材库</div></aside>
+        <section class="shot-area">
+          <div class="shot-card"><div class="shot-no">S04</div><div class="frame-pair"><div class="mini-frame">首帧</div><div class="mini-frame">尾帧</div></div><div class="shot-copy"><strong>收银台对峙</strong><span class="muted">批量生成首尾帧需要更多积分。</span></div><div class="pill"><span class="dot warn"></span>待生成</div></div>
+        </section>
+        <aside class="inspector"></aside>
+      </div>
+      <div class="modal-backdrop">
+        <div class="modal">
+          <h3>积分不足</h3>
+          <p>本次批量生成预计消耗 48 credits，当前可用余额为 12 credits。任务尚未创建，也不会冻结积分。</p>
+          <div class="price-grid">
+            <div class="price"><strong>Creator 月订阅</strong><br><span class="muted mono">+800 credits / month</span><br><br><div class="btn primary">升级订阅</div></div>
+            <div class="price"><strong>积分包</strong><br><span class="muted mono">+300 credits</span><br><br><div class="btn">购买积分包</div></div>
+          </div>
+          <div class="btn ghost">返回继续编辑</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="screen-title">05 Task Queue Drawer</div>
+      <div class="topbar">
+        <div class="brand"><span class="mark"></span>任务队列状态</div>
+        <div class="spacer"></div>
+        <div class="btn primary">导出</div>
+      </div>
+      <div class="work-main">
+        <aside class="sidebar"><div class="nav-row active">分镜列表</div><div class="nav-row">任务记录</div></aside>
+        <section class="shot-area">
+          <div class="tabs"><div class="tab active">分镜列表</div><div class="tab">时间线草图</div></div>
+          <div class="shot-card selected"><div class="shot-no">S02</div><div class="frame-pair"><div class="mini-frame ready">首帧</div><div class="mini-frame">42%</div></div><div class="shot-copy"><strong>货架尽头</strong><span class="muted">尾帧生成中，主编辑区不被阻塞。</span></div><div class="pill"><span class="dot"></span>运行中</div></div>
+        </section>
+        <aside class="inspector"></aside>
+      </div>
+      <div class="queue-drawer">
+        <div style="display:flex;align-items:center;gap:10px"><strong>AI 任务队列</strong><div class="spacer"></div><div class="btn icon">×</div></div>
+        <div class="job">
+          <div style="display:flex"><strong>S02 尾帧生成</strong><span class="spacer"></span><span class="mono">42%</span></div>
+          <div class="bar"><span style="width:42%"></span></div>
+          <div class="muted">已冻结 8 credits，成功后扣除。</div>
+        </div>
+        <div class="job">
+          <div style="display:flex"><strong>S03 尾帧生成</strong><span class="spacer"></span><span style="color:var(--danger)">失败</span></div>
+          <div class="muted">模型返回空结果，已释放冻结积分。</div>
+        </div>
+        <div class="job">
+          <div style="display:flex"><strong>文本拆分镜头</strong><span class="spacer"></span><span style="color:var(--cyan)">完成</span></div>
+          <div class="muted">扣除 4 credits，生成 18 个镜头。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="screen-title">06 Timeline / Assets / Permission</div>
+      <div class="topbar">
+        <div class="brand"><span class="mark"></span>辅助视图</div>
+        <div class="spacer"></div>
+        <div class="pill">v1 不包含视频剪辑</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;height:calc(100% - 48px)">
+        <div class="timeline">
+          <div class="tabs"><div class="tab active">时间线草图</div><div class="tab">只读顺序</div></div>
+          <div class="track">
+            <div class="clip" style="width:80px">S01 4s</div>
+            <div class="clip" style="width:100px">S02 5s</div>
+            <div class="clip" style="width:60px">S03 3s</div>
+            <div class="clip" style="width:120px">S04 6s</div>
+          </div>
+          <div class="field">第一版仅展示镜头顺序与时长比例，不提供视频生成、TTS 或最终合成入口。</div>
+          <div class="tabs"><div class="tab active">素材库</div><div class="tab">首帧</div><div class="tab">尾帧</div></div>
+          <div class="asset-grid">
+            <div class="asset"><span>S01 首帧</span></div><div class="asset"><span>S02 首帧</span></div>
+            <div class="asset"><span>S02 尾帧</span></div><div class="asset"><span>参考图</span></div>
+          </div>
+        </div>
+        <div class="permission">
+          <div>
+            <div class="pill" style="margin-bottom:14px"><span class="dot bad"></span>403 / Not Found</div>
+            <h2>无法访问这个项目</h2>
+            <p>项目不存在，或当前账号没有查看权限。第一版只开放个人项目，不显示团队成员或邀请入口。</p>
+            <div class="btn primary">返回个人项目</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

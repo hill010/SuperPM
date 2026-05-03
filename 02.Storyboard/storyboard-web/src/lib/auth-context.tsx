@@ -24,7 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem("storyboard_user");
-    if (saved) setUser(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setUser({ ...parsed, credits: parsed.credits ?? 0 });
+    }
   }, []);
 
   const login = async (email: string, _password: string): Promise<boolean> => {

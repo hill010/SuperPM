@@ -1,0 +1,24 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:Storyboard.Converters"
+             x:Class="Storyboard.App"
+             RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <conv:BooleanNotConverter x:Key="BoolNot" />
+        <conv:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
+        <conv:StatusColorConverter x:Key="StatusColorConverter" />
+        <conv:SelectedBorderConverter x:Key="SelectedBorderConverter" />
+        <conv:PathToBitmapConverter x:Key="PathToBitmapConverter" />
+        <conv:AiParseButtonTextConverter x:Key="AiParseButtonTextConverter" />
+        <conv:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter" />
+        <conv:CreationModeToBackgroundConverter x:Key="CreationModeToBackgroundConverter" />
+        <conv:StringFallbackConverter x:Key="StringFallbackConverter" />
+        <conv:BoolToColorConverter x:Key="BoolToColorConverter" />
+        <conv:GeneratingAudioTextConverter x:Key="GeneratingAudioTextConverter" />
+        <conv:PathToFileNameConverter x:Key="PathToFileNameConverter" />
+    </Application.Resources>
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Storyboard/App/Styles/AppStyles.axaml" />
+    </Application.Styles>
+</Application>

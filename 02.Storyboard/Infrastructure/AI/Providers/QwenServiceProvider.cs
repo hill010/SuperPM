@@ -1,0 +1,300 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Storyboard.AI.Core;
+using System.Net.Http.Headers;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Runtime.CompilerServices;
+
+namespace Storyboard.AI.Providers;
+
+public class QwenServiceProvider : BaseAIServiceProvider
+{
+    private readonly IOptionsMonitor<AIServicesConfiguration> _configMonitor;
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    public QwenServiceProvider(IOptionsMonitor<AIServicesConfiguration> configMonitor, ILogger<QwenServiceProvider> logger)
+        : base(logger)
+    {
+        _configMonitor = configMonitor;
+    }
+
+    private AIProviderConfiguration Config => _configMonitor.CurrentValue.Providers.Qwen;
+
+    public override AIProviderType ProviderType => AIProviderType.Qwen;
+    public override string DisplayName => "Qwen";
+
+    public override bool IsConfigured =>
+        Config.Enabled &&
+        !string.IsNullOrWhiteSpace(Config.ApiKey) &&
+        !string.IsNullOrWhiteSpace(Config.Endpoint);
+
+    public override IReadOnlyList<string> SupportedModels => new[]
+    {
+        "qwen-turbo",
+        "qwen-plus",
+        "qwen-max",
+        "qwen-max-longcontext"
+    };
+
+    public override async Task<string> ChatAsync(AIChatRequest request, CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        EnsureModel(request.Model);
+        var payload = BuildRequestPayload(request, stream: false);
+        using var httpClient = CreateChatClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Config.ApiKey);
+
+        var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        var response = await httpClient.PostAsync("chat/completions", content, cancellationToken)
+            .ConfigureAwait(false);
+
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"Qwen request failed: {responseBody}");
+        }
+
+        var result = JsonSerializer.Deserialize<QwenResponse>(responseBody, JsonOptions);
+        return result?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+    }
+
+    public override async IAsyncEnumerable<string> ChatStreamAsync(
+        AIChatRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        EnsureModel(request.Model);
+        var payload = BuildRequestPayload(request, stream: true);
+        using var httpClient = CreateChatClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Config.ApiKey);
+
+        var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+        {
+            Content = content
+        };
+        requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+
+        var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var reader = new StreamReader(stream);
+
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("data:"))
+                continue;
+
+            var data = line.Substring(5).Trim();
+            if (data == "[DONE]")
+                break;
+
+            var chunk = JsonSerializer.Deserialize<QwenResponse>(data, JsonOptions);
+            var contentDelta = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+            if (!string.IsNullOrEmpty(contentDelta))
+            {
+                yield return contentDelta!;
+            }
+        }
+    }
+
+    public override async Task<bool> ValidateConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsConfigured)
+        {
+            Logger.LogWarning("Qwen configuration incomplete.");
+            return false;
+        }
+
+        try
+        {
+            var model = ResolveValidationModel(GetPreferredValidationModel());
+            var request = new AIChatRequest
+            {
+                Model = model,
+                Messages = new[] { new AIChatMessage(AIChatRole.User, "test") },
+                MaxTokens = 16
+            };
+
+            _ = await ChatAsync(request, cancellationToken).ConfigureAwait(false);
+            Logger.LogInformation("Qwen configuration validated.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Qwen configuration validation failed.");
+            return false;
+        }
+    }
+
+    private string GetPreferredValidationModel()
+    {
+        var defaults = _configMonitor.CurrentValue.Defaults.Text;
+        if (defaults.Provider == ProviderType && !string.IsNullOrWhiteSpace(defaults.Model))
+        {
+            return defaults.Model.Trim();
+        }
+
+        return Config.DefaultModels.Text?.Trim() ?? string.Empty;
+    }
+
+    private string ResolveValidationModel(string configuredModel)
+    {
+        if (string.IsNullOrWhiteSpace(configuredModel))
+        {
+            return "qwen-max";
+        }
+
+        if (configuredModel.Contains("qwen", StringComparison.OrdinalIgnoreCase) ||
+            configuredModel.Contains("qwq", StringComparison.OrdinalIgnoreCase))
+        {
+            return configuredModel;
+        }
+
+        Logger.LogWarning(
+            "Qwen validation model {Model} does not look like a Qwen model. Falling back to qwen-max.",
+            configuredModel);
+        return "qwen-max";
+    }
+
+    private void EnsureConfigured()
+    {
+        if (!IsConfigured)
+        {
+            throw new InvalidOperationException("Qwen is not configured.");
+        }
+    }
+
+    private static void EnsureModel(string model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            throw new InvalidOperationException("Model is required for Qwen requests.");
+        }
+    }
+
+    private object BuildRequestPayload(AIChatRequest request, bool stream)
+    {
+        return new
+        {
+            model = request.Model,
+            messages = request.Messages.Select(m => new
+            {
+                role = MapRole(m.Role),
+                content = BuildMessageContent(m)
+            }).ToArray(),
+            temperature = request.Temperature,
+            top_p = request.TopP,
+            max_tokens = request.MaxTokens,
+            stream = stream
+        };
+    }
+
+    private static object BuildMessageContent(AIChatMessage message)
+    {
+        // 如果是多模态消息
+        if (message.IsMultimodal && message.MultimodalContent != null)
+        {
+            var contentArray = new List<object>();
+            foreach (var part in message.MultimodalContent)
+            {
+                if (part.Type == Core.MessageContentType.Text && !string.IsNullOrWhiteSpace(part.Text))
+                {
+                    contentArray.Add(new { type = "text", text = part.Text });
+                }
+                else if (part.Type == Core.MessageContentType.ImageBase64 && !string.IsNullOrWhiteSpace(part.ImageBase64))
+                {
+                    contentArray.Add(new
+                    {
+                        type = "image_url",
+                        image_url = new { url = $"data:image/jpeg;base64,{part.ImageBase64}" }
+                    });
+                }
+                else if (part.Type == Core.MessageContentType.ImageUrl && !string.IsNullOrWhiteSpace(part.ImageUrl))
+                {
+                    contentArray.Add(new
+                    {
+                        type = "image_url",
+                        image_url = new { url = part.ImageUrl }
+                    });
+                }
+            }
+            return contentArray;
+        }
+
+        // 普通文本消息
+        return message.Content ?? string.Empty;
+    }
+
+    private static string MapRole(AIChatRole role)
+    {
+        return role switch
+        {
+            AIChatRole.System => "system",
+            AIChatRole.User => "user",
+            AIChatRole.Assistant => "assistant",
+            _ => "user"
+        };
+    }
+
+    private HttpClient CreateChatClient()
+    {
+        var baseAddress = BuildChatBaseAddress(Config.Endpoint);
+        return new HttpClient
+        {
+            BaseAddress = baseAddress,
+            Timeout = TimeSpan.FromSeconds(Config.TimeoutSeconds)
+        };
+    }
+
+    private static Uri BuildChatBaseAddress(string endpoint)
+    {
+        if (string.IsNullOrWhiteSpace(endpoint))
+            throw new InvalidOperationException("Endpoint is required.");
+
+        var normalized = endpoint.TrimEnd('/');
+        if (!normalized.EndsWith("/compatible-mode/v1", StringComparison.OrdinalIgnoreCase))
+        {
+            if (normalized.EndsWith("/api/v1/services/aigc", StringComparison.OrdinalIgnoreCase))
+                normalized = normalized[..^"/api/v1/services/aigc".Length];
+            if (normalized.EndsWith("/api/v1/services", StringComparison.OrdinalIgnoreCase))
+                normalized = normalized[..^"/api/v1/services".Length];
+            if (normalized.EndsWith("/api/v1", StringComparison.OrdinalIgnoreCase))
+                normalized = normalized[..^"/api/v1".Length];
+
+            normalized = $"{normalized.TrimEnd('/')}/compatible-mode/v1";
+        }
+
+        return new Uri($"{normalized}/");
+    }
+
+    private class QwenResponse
+    {
+        public QwenChoice[]? Choices { get; set; }
+    }
+
+    private class QwenChoice
+    {
+        public QwenMessage? Message { get; set; }
+        public QwenDelta? Delta { get; set; }
+    }
+
+    private class QwenMessage
+    {
+        public string? Content { get; set; }
+    }
+
+    private class QwenDelta
+    {
+        public string? Content { get; set; }
+    }
+}
