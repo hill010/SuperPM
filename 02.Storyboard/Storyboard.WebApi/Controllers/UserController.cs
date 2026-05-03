@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,20 +19,32 @@ public sealed class UserController : ControllerBase
         _db = db;
     }
 
+    [HttpGet("test")]
+    public IActionResult TestAuth()
+    {
+        var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+        return Ok(new {
+            message = "UserController auth works",
+            userId = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value,
+            nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+            email = User.FindFirst(ClaimTypes.Email)?.Value,
+            allClaims = claims
+        });
+    }
+
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();
 
-        var user = await _db.Users
-            .Include(u => u.CreditAccount)
-            .Include(u => u.Subscription)
-            .FirstOrDefaultAsync(u => u.Id == userId);
-
+        var user = await _db.Users.FindAsync(userId);
         if (user == null)
             return NotFound();
+
+        var creditAccount = await _db.CreditAccounts.FirstOrDefaultAsync(c => c.UserId == userId);
+        var subscription = await _db.Subscriptions.FirstOrDefaultAsync(s => s.UserId == userId);
 
         return Ok(new
         {
@@ -39,13 +52,13 @@ public sealed class UserController : ControllerBase
             email = user.Email,
             displayName = user.DisplayName,
             avatarUrl = user.AvatarUrl,
-            credits = user.CreditAccount?.Balance ?? 0,
-            subscription = user.Subscription == null ? null : new
+            credits = creditAccount?.Balance ?? 0,
+            subscription = subscription == null ? null : new
             {
-                plan = user.Subscription.Plan,
-                status = user.Subscription.Status,
-                creditsPerMonth = user.Subscription.CreditsPerMonth,
-                currentPeriodEnd = user.Subscription.CurrentPeriodEnd
+                plan = subscription.Plan,
+                status = subscription.Status,
+                monthlyCredits = subscription.MonthlyCredits,
+                currentPeriodEnd = subscription.CurrentPeriodEnd
             }
         });
     }
@@ -53,7 +66,7 @@ public sealed class UserController : ControllerBase
     [HttpPut("me")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
-        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();
 
@@ -82,7 +95,7 @@ public sealed class UserController : ControllerBase
     [HttpGet("me/credits")]
     public async Task<IActionResult> GetCreditBalance()
     {
-        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();
 
@@ -96,7 +109,7 @@ public sealed class UserController : ControllerBase
     [HttpGet("me/transactions")]
     public async Task<IActionResult> GetCreditTransactions([FromQuery] int limit = 20)
     {
-        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();
 
@@ -106,7 +119,7 @@ public sealed class UserController : ControllerBase
 
         var transactions = await _db.CreditTransactions
             .Where(t => t.AccountId == account.Id)
-            .OrderByDescending(t => t.CreatedAt)
+            .OrderByDescending(t => t.CreatedAt.UtcTicks)
             .Take(limit)
             .Select(t => new
             {

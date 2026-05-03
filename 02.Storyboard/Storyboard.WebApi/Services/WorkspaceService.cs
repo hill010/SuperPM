@@ -46,7 +46,8 @@ public sealed class WorkspaceService : IWorkspaceService
             Id = Guid.NewGuid(),
             UserId = user.Id,
             Balance = initialCredits,
-            CreatedAt = DateTimeOffset.UtcNow,
+            TotalEarned = initialCredits,
+            TotalUsed = 0,
             UpdatedAt = DateTimeOffset.UtcNow
         };
         _db.CreditAccounts.Add(creditAccount);
@@ -70,10 +71,10 @@ public sealed class WorkspaceService : IWorkspaceService
             UserId = user.Id,
             Plan = "free",
             Status = "active",
-            CreditsPerMonth = initialCredits,
-            StartedAt = DateTimeOffset.UtcNow,
+            MonthlyCredits = initialCredits,
             CurrentPeriodStart = DateTimeOffset.UtcNow,
-            CurrentPeriodEnd = DateTimeOffset.UtcNow.AddMonths(1)
+            CurrentPeriodEnd = DateTimeOffset.UtcNow.AddMonths(1),
+            CreatedAt = DateTimeOffset.UtcNow
         };
         _db.Subscriptions.Add(subscription);
 
