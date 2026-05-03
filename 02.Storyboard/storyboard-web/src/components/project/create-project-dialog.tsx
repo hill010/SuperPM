@@ -14,9 +14,10 @@ interface CreateProjectDialogProps {
     targetAudience: string;
     videoTone: string;
   }) => void;
+  isSubmitting?: boolean;
 }
 
-export function CreateProjectDialog({ open, onClose, onSubmit }: CreateProjectDialogProps) {
+export function CreateProjectDialog({ open, onClose, onSubmit, isSubmitting }: CreateProjectDialogProps) {
   const [name, setName] = useState("");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [targetDuration, setTargetDuration] = useState("");
@@ -147,10 +148,10 @@ export function CreateProjectDialog({ open, onClose, onSubmit }: CreateProjectDi
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!name.trim()}
+            disabled={!name.trim() || isSubmitting}
             className="h-11 px-6 rounded-full bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            创建项目
+            {isSubmitting ? "创建中..." : "创建项目"}
           </button>
         </div>
       </div>
