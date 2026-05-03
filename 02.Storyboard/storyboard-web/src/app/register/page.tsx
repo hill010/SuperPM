@@ -37,10 +37,10 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    const ok = await register(email, password, username);
+    const result = await register(email, password, username);
     setLoading(false);
-    if (ok) router.push("/");
-    else setError("注册失败，请重试");
+    if (result.success) router.push("/");
+    else setError(result.error || "注册失败，请重试");
   };
 
   return (

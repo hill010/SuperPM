@@ -26,11 +26,12 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    updateProfile({ displayName, email });
+    const success = await updateProfile({ displayName, email });
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   };
 
   const navItems = [

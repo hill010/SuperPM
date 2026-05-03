@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Storyboard.WebApi.Data;
+using Storyboard.WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,10 @@ builder.Services.AddDbContext<WebDbContext>(options =>
         options.UseSqlite(builder.Configuration.GetConnectionString("Sqlite")
             ?? "Data Source=storyboard-web.db");
 });
+
+// Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 
 // Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-secret-key-change-in-production-min-32-chars!!";

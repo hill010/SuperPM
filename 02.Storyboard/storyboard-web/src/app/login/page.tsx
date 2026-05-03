@@ -23,10 +23,10 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const ok = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
-    if (ok) router.push("/");
-    else setError("登录失败，请重试");
+    if (result.success) router.push("/");
+    else setError(result.error || "登录失败，请重试");
   };
 
   return (
