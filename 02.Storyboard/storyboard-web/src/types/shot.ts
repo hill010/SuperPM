@@ -1,5 +1,5 @@
 export interface Shot {
-  id: string;
+  id: number;
   projectId?: string;
   shotNumber: number;
   duration: number;
@@ -10,8 +10,8 @@ export interface Shot {
   firstFramePrompt: string;
   lastFramePrompt: string;
   videoPrompt: string;
-  firstFrameImagePath?: string;
-  lastFrameImagePath?: string;
+  firstFrameImagePath?: string | null;
+  lastFrameImagePath?: string | null;
   createdAt: string;
   updatedAt: string;
 }

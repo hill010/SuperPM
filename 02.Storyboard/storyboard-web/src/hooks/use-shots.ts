@@ -10,10 +10,10 @@ interface UseShotsReturn {
   error: string | null;
   fetchShots: (projectId: string) => Promise<void>;
   createShot: (projectId: string, data?: CreateShotRequest) => Promise<{ success: boolean; shot?: Shot; error?: string }>;
-  updateShot: (shotId: string, data: UpdateShotRequest) => Promise<{ success: boolean; shot?: Shot; error?: string }>;
-  deleteShot: (shotId: string) => Promise<{ success: boolean; error?: string }>;
-  duplicateShot: (shotId: string) => Promise<{ success: boolean; shot?: Shot; error?: string }>;
-  reorderShots: (projectId: string, orderedIds: string[]) => Promise<{ success: boolean; error?: string }>;
+  updateShot: (shotId: number, data: UpdateShotRequest) => Promise<{ success: boolean; shot?: Shot; error?: string }>;
+  deleteShot: (shotId: number) => Promise<{ success: boolean; error?: string }>;
+  duplicateShot: (shotId: number) => Promise<{ success: boolean; shot?: Shot; error?: string }>;
+  reorderShots: (projectId: string, orderedIds: number[]) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function useShots(): UseShotsReturn {
@@ -46,7 +46,7 @@ export function useShots(): UseShotsReturn {
     }
   };
 
-  const updateShot = async (shotId: string, data: UpdateShotRequest): Promise<{ success: boolean; shot?: Shot; error?: string }> => {
+  const updateShot = async (shotId: number, data: UpdateShotRequest): Promise<{ success: boolean; shot?: Shot; error?: string }> => {
     try {
       const response = await api.put(`/api/shot/${shotId}`, data);
       const shot = response.data as Shot;
@@ -58,7 +58,7 @@ export function useShots(): UseShotsReturn {
     }
   };
 
-  const deleteShot = async (shotId: string): Promise<{ success: boolean; error?: string }> => {
+  const deleteShot = async (shotId: number): Promise<{ success: boolean; error?: string }> => {
     try {
       await api.delete(`/api/shot/${shotId}`);
       setShots((prev) => prev.filter((s) => s.id !== shotId));
@@ -69,7 +69,7 @@ export function useShots(): UseShotsReturn {
     }
   };
 
-  const duplicateShot = async (shotId: string): Promise<{ success: boolean; shot?: Shot; error?: string }> => {
+  const duplicateShot = async (shotId: number): Promise<{ success: boolean; shot?: Shot; error?: string }> => {
     try {
       const response = await api.post(`/api/shot/${shotId}/duplicate`);
       const shot = response.data as Shot;
@@ -87,10 +87,10 @@ export function useShots(): UseShotsReturn {
     }
   };
 
-  const reorderShots = async (projectId: string, orderedIds: string[]): Promise<{ success: boolean; error?: string }> => {
+  const reorderShots = async (projectId: string, orderedIds: number[]): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await api.post(`/api/shot/project/${projectId}/reorder`, { orderedIds });
-      const updatedShots = response.data as Array<{ id: string; shotNumber: number; updatedAt: string }>;
+      const updatedShots = response.data as Array<{ id: number; shotNumber: number; updatedAt: string }>;
       setShots((prev) =>
         prev.map((s) => {
           const updated = updatedShots.find((u) => u.id === s.id);

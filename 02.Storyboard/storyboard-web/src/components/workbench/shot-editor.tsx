@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronDown, ChevronUp, Sparkles, Copy, Trash2, Check, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, ChevronUp, Sparkles, Copy, Trash2, Check, Loader2, RefreshCw } from "lucide-react";
 import type { Shot, UpdateShotRequest } from "@/types/shot";
+import { useImageGeneration } from "@/hooks/use-image-generation";
 
 type SaveState = "idle" | "saving" | "saved";
 
@@ -11,8 +13,7 @@ interface ShotEditorProps {
   onChange: (shot: Shot) => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onGenerateFirstFrame?: () => boolean;
-  onGenerateLastFrame?: () => boolean;
+  onRefresh?: () => void;
 }
 
 function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
@@ -58,12 +59,16 @@ function Field({ label, value, onChange, multiline = false, placeholder = "" }: 
   );
 }
 
-export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFirstFrame, onGenerateLastFrame }: ShotEditorProps) {
+export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onRefresh }: ShotEditorProps) {
   const [local, setLocal] = useState<Shot | null>(shot);
   const [model, setModel] = useState("Flux Pro");
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
+  const [generatingFirstFrame, setGeneratingFirstFrame] = useState(false);
+  const [generatingLastFrame, setGeneratingLastFrame] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { generateFirstFrame, generateLastFrame, error } = useImageGeneration();
 
   useEffect(() => { setLocal(shot); setSaveState("saved"); }, [shot]);
 
@@ -90,23 +95,31 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFi
     debouncedSave(updated);
   };
 
-  const handleGenerateFirstFrame = () => {
-    if (onGenerateFirstFrame) {
-      const success = onGenerateFirstFrame();
-      if (!success) {
-        setShowInsufficientCredits(true);
-        setTimeout(() => setShowInsufficientCredits(false), 2000);
-      }
+  const handleGenerateFirstFrame = async () => {
+    setGeneratingFirstFrame(true);
+    const result = await generateFirstFrame(local.id);
+    setGeneratingFirstFrame(false);
+
+    if (result?.success && result.imageUrl) {
+      setLocal({ ...local, firstFrameImagePath: result.imageUrl });
+      onRefresh?.();
+    } else if (error) {
+      setShowInsufficientCredits(true);
+      setTimeout(() => setShowInsufficientCredits(false), 3000);
     }
   };
 
-  const handleGenerateLastFrame = () => {
-    if (onGenerateLastFrame) {
-      const success = onGenerateLastFrame();
-      if (!success) {
-        setShowInsufficientCredits(true);
-        setTimeout(() => setShowInsufficientCredits(false), 2000);
-      }
+  const handleGenerateLastFrame = async () => {
+    setGeneratingLastFrame(true);
+    const result = await generateLastFrame(local.id);
+    setGeneratingLastFrame(false);
+
+    if (result?.success && result.imageUrl) {
+      setLocal({ ...local, lastFrameImagePath: result.imageUrl });
+      onRefresh?.();
+    } else if (error) {
+      setShowInsufficientCredits(true);
+      setTimeout(() => setShowInsufficientCredits(false), 3000);
     }
   };
 
@@ -151,34 +164,94 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFi
           <Field label="核心内容" value={local.coreContent} onChange={(v) => update("coreContent", v)} multiline placeholder="描述这个镜头的核心画面" />
         </Section>
 
-        <Section title="首帧参数" defaultOpen={false}>
-          <Field label="生成提示词" value={local.firstFramePrompt} onChange={(v) => update("firstFramePrompt", v)} multiline placeholder="城市天际线，夕阳，暖色调..." />
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">模型</label>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-border bg-surface text-sm text-text-primary focus:outline-none focus:border-accent"
-            >
-              {["Flux Pro", "Flux Dev", "Stable Diffusion XL", "Midjourney"].map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <button onClick={handleGenerateFirstFrame} className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors">
-            <Sparkles className="w-3.5 h-3.5" />
-            生成首帧
-          </button>
-          {showInsufficientCredits && (
-            <p className="text-xs text-error text-center">积分不足，请充值后重试</p>
+        <Section title="首帧参数" defaultOpen={!!local.firstFrameImagePath}>
+          {local.firstFrameImagePath && (
+            <div className="relative aspect-video rounded-xl overflow-hidden bg-base mb-3">
+              <Image
+                src={local.firstFrameImagePath}
+                alt="首帧"
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
           )}
+          <Field label="生成提示词" value={local.firstFramePrompt} onChange={(v) => update("firstFramePrompt", v)} multiline placeholder="城市天际线，夕阳，暖色调..." />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1">模型</label>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full h-9 px-3 rounded-xl border border-border bg-surface text-sm text-text-primary focus:outline-none focus:border-accent"
+              >
+                {["Flux Pro", "Flux Dev", "Stable Diffusion XL", "Midjourney"].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <span className="text-xs text-text-muted pb-2">消耗 20 积分</span>
+            </div>
+          </div>
+          <button
+            onClick={handleGenerateFirstFrame}
+            disabled={generatingFirstFrame}
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingFirstFrame ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                生成中...
+              </>
+            ) : local.firstFrameImagePath ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                重新生成
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                生成首帧
+              </>
+            )}
+          </button>
         </Section>
 
-        <Section title="尾帧参数" defaultOpen={false}>
+        <Section title="尾帧参数" defaultOpen={!!local.lastFrameImagePath}>
+          {local.lastFrameImagePath && (
+            <div className="relative aspect-video rounded-xl overflow-hidden bg-base mb-3">
+              <Image
+                src={local.lastFrameImagePath}
+                alt="尾帧"
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          )}
           <Field label="尾帧提示词" value={local.lastFramePrompt} onChange={(v) => update("lastFramePrompt", v)} multiline placeholder="Last frame image prompt" />
-          <button onClick={handleGenerateLastFrame} className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors">
-            <Sparkles className="w-3.5 h-3.5" />
-            生成尾帧
+          <button
+            onClick={handleGenerateLastFrame}
+            disabled={generatingLastFrame}
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-full bg-accent text-white text-[13px] font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingLastFrame ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                生成中...
+              </>
+            ) : local.lastFrameImagePath ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                重新生成
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                生成尾帧
+              </>
+            )}
           </button>
         </Section>
 
@@ -201,6 +274,13 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFi
           </>
         )}
       </div>
+
+      {/* Error toast */}
+      {showInsufficientCredits && (
+        <div className="absolute bottom-20 left-4 right-4 bg-error text-white text-xs px-4 py-3 rounded-xl text-center">
+          {error || "积分不足，请充值后重试"}
+        </div>
+      )}
     </div>
   );
 }

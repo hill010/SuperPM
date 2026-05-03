@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Clock, Film, Check, Loader2, AlertCircle, Image as ImageIcon } from "lucide-react";
 import type { Shot } from "@/types/shot";
 
@@ -59,11 +60,15 @@ export function ShotCard({ shot, selected, onClick }: ShotCardProps) {
       </p>
 
       <div className="flex gap-2">
-        <div className="flex-1 aspect-video bg-base rounded-xl flex items-center justify-center overflow-hidden">
+        <div className="flex-1 aspect-video bg-base rounded-xl flex items-center justify-center overflow-hidden relative">
           {shot.firstFrameImagePath ? (
-            <div className="w-full h-full bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-accent/40" />
-            </div>
+            <Image
+              src={shot.firstFrameImagePath}
+              alt="首帧"
+              fill
+              className="object-cover"
+              unoptimized
+            />
           ) : (
             <div className="text-center">
               <ImageIcon className="w-4 h-4 text-text-muted mx-auto mb-1" />
@@ -71,11 +76,15 @@ export function ShotCard({ shot, selected, onClick }: ShotCardProps) {
             </div>
           )}
         </div>
-        <div className="flex-1 aspect-video bg-base rounded-xl flex items-center justify-center overflow-hidden">
+        <div className="flex-1 aspect-video bg-base rounded-xl flex items-center justify-center overflow-hidden relative">
           {shot.lastFrameImagePath ? (
-            <div className="w-full h-full bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-success/40" />
-            </div>
+            <Image
+              src={shot.lastFrameImagePath}
+              alt="尾帧"
+              fill
+              className="object-cover"
+              unoptimized
+            />
           ) : (
             <div className="text-center">
               <ImageIcon className="w-4 h-4 text-text-muted mx-auto mb-1" />

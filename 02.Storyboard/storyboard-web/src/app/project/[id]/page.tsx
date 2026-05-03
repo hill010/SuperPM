@@ -35,9 +35,6 @@ import { ExportDialog } from "@/components/project/export-dialog";
 import { useAuth } from "@/lib/auth-context";
 import type { Shot } from "@/types/shot";
 
-const CREDIT_COST_FIRST_FRAME = 30;
-const CREDIT_COST_LAST_FRAME = 30;
-
 interface SortableShotCardProps {
   shot: Shot;
   selected: boolean;
@@ -92,7 +89,7 @@ interface MockJob {
 export default function WorkbenchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { user, deductCredits } = useAuth();
+  const { user } = useAuth();
   const { projects } = useProjects();
   const {
     shots,
@@ -105,9 +102,9 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
     reorderShots,
   } = useShots();
 
-  const [selectedShot, setSelectedShot] = useState<string | null>(null);
+  const [selectedShot, setSelectedShot] = useState<number | null>(null);
   const [jobs, setJobs] = useState<MockJob[]>([]);
-  const [selectedShots, setSelectedShots] = useState<Set<string>>(new Set());
+  const [selectedShots, setSelectedShots] = useState<Set<number>>(new Set());
   const [batchMode, setBatchMode] = useState(false);
   const [activeNav, setActiveNav] = useState("shots");
   const [showExport, setShowExport] = useState(false);
@@ -137,21 +134,9 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
       const oldIndex = shots.findIndex((s) => s.id === active.id);
       const newIndex = shots.findIndex((s) => s.id === over.id);
       const reordered = arrayMove(shots, oldIndex, newIndex);
-
-      // Optimistic update
       const orderedIds = reordered.map((s) => s.id);
       await reorderShots(id, orderedIds);
     }
-  };
-
-  const handleGenerateFirstFrame = (): boolean => {
-    if (!user || user.credits < CREDIT_COST_FIRST_FRAME) return false;
-    return deductCredits(CREDIT_COST_FIRST_FRAME);
-  };
-
-  const handleGenerateLastFrame = (): boolean => {
-    if (!user || user.credits < CREDIT_COST_LAST_FRAME) return false;
-    return deductCredits(CREDIT_COST_LAST_FRAME);
   };
 
   const currentShot = shots.find((s) => s.id === selectedShot) ?? null;
@@ -189,12 +174,11 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
     }
   };
 
-  const handleAIGenerate = (script: string, shotCount: number) => {
-    // TODO: Implement AI generation via backend
-    console.log("AI generate:", script, shotCount);
-  };
+  const handleGenerateComplete = useCallback(() => {
+    fetchShots(id);
+  }, [id, fetchShots]);
 
-  const toggleBatchSelect = (shotId: string) => {
+  const toggleBatchSelect = (shotId: number) => {
     const next = new Set(selectedShots);
     if (next.has(shotId)) next.delete(shotId);
     else next.add(shotId);
@@ -310,7 +294,7 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
               )}
               {!batchMode && (
                 <>
-                  <ScriptInput onGenerate={handleAIGenerate} />
+                  <ScriptInput projectId={id} onGenerateComplete={handleGenerateComplete} />
                   <button
                     onClick={() => setBatchMode(true)}
                     className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-border text-xs font-medium text-text-secondary hover:bg-base"
@@ -338,12 +322,13 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
               <div className="flex flex-col items-center justify-center py-20">
                 <ListTodo className="w-12 h-12 text-text-muted mb-4" />
                 <p className="text-text-secondary mb-4">还没有镜头</p>
+                <ScriptInput projectId={id} onGenerateComplete={handleGenerateComplete} />
                 <button
                   onClick={handleAddShot}
-                  className="flex items-center gap-2 h-11 px-5 rounded-full bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors"
+                  className="mt-3 flex items-center gap-2 h-11 px-5 rounded-full bg-surface border border-border text-sm font-medium text-text-secondary hover:bg-base transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  添加第一个镜头
+                  手动添加镜头
                 </button>
               </div>
             ) : (
@@ -375,8 +360,7 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
             onChange={handleShotChange}
             onDelete={handleDeleteShot}
             onDuplicate={handleDuplicateShot}
-            onGenerateFirstFrame={handleGenerateFirstFrame}
-            onGenerateLastFrame={handleGenerateLastFrame}
+            onRefresh={handleGenerateComplete}
           />
         </aside>
       </div>
