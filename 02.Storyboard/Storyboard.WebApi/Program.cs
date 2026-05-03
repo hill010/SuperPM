@@ -27,6 +27,7 @@ builder.Services.AddScoped<IShotService, ShotService>();
 builder.Services.AddScoped<ICreditService, CreditService>();
 builder.Services.AddScoped<IStoryboardAIService, StoryboardAIService>();
 builder.Services.AddScoped<IImageGenerationService, MockImageGenerationService>();
+builder.Services.AddScoped<IExportService, ExportService>();
 
 // Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-secret-key-change-in-production-min-32-chars!!";

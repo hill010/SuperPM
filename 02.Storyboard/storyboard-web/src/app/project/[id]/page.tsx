@@ -369,6 +369,7 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
         open={showExport}
         onClose={() => setShowExport(false)}
         projectName={project.name}
+        projectId={id}
       />
     </div>
     </AuthGuard>

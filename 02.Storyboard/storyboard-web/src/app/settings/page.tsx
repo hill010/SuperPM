@@ -1,36 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/top-bar";
 import { LeftSidebar } from "@/components/layout/left-sidebar";
 import { RightPanel } from "@/components/layout/right-panel";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { useAuth } from "@/lib/auth-context";
-import { User, CreditCard, Wallet, Check } from "lucide-react";
+import api from "@/lib/api";
+import { User, CreditCard, Wallet, Check, Loader2, Sparkles } from "lucide-react";
 
-const creditHistory = [
-  { id: "1", title: "AI 拆镜 - 产品宣传视频", time: "2024-01-15 14:30", amount: -60 },
-  { id: "2", title: "图片生成 - #01 首帧", time: "2024-01-15 14:25", amount: -30 },
-  { id: "3", title: "每月配额充值", time: "2024-01-01 00:00", amount: 2000 },
-];
+interface CreditTransaction {
+  id: string;
+  amount: number;
+  type: string;
+  description: string;
+  createdAt: string;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const [activeNav, setActiveNav] = useState("profile");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName ?? "");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoadingTransactions(true);
+      try {
+        const response = await api.get("/api/user/me/transactions");
+        setTransactions(response.data);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+      }
+      setLoadingTransactions(false);
+    };
+    fetchTransactions();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    const success = await updateProfile({ displayName, email });
+    const success = await updateProfile({ displayName });
     setSaving(false);
     if (success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "earn": return "获得";
+      case "spend": return "消费";
+      case "refund": return "退回";
+      case "reserve": return "预留";
+      case "deduct_reserved": return "扣费";
+      case "return_reserved": return "退回预留";
+      default: return type;
     }
   };
 
@@ -81,7 +117,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-text-primary">{displayName || "未设置"}</p>
-                      <p className="text-xs text-text-muted">{email}</p>
+                      <p className="text-xs text-text-muted">{user?.email}</p>
                     </div>
                   </div>
                   <div>
@@ -90,15 +126,6 @@ export default function SettingsPage() {
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-border bg-surface text-sm text-text-primary focus:outline-none focus:border-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1.5">邮箱地址</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full h-11 px-4 rounded-xl border border-border bg-surface text-sm text-text-primary focus:outline-none focus:border-accent"
                     />
                   </div>
@@ -114,24 +141,25 @@ export default function SettingsPage() {
 
               <div className="h-px bg-border" />
 
-              {/* Subscription section */}
+              {/* Credits section */}
               <section className="space-y-5">
-                <h3 className="text-xl font-bold text-text-primary">订阅管理</h3>
-                <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-base font-semibold text-text-primary">专业版</p>
-                      <p className="text-[13px] text-text-secondary">每月 2,000 积分</p>
+                <h3 className="text-xl font-bold text-text-primary">积分余额</h3>
+                <div className="bg-surface rounded-2xl border border-border p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="w-5 h-5 text-accent" />
+                      <span className="text-sm text-text-secondary">当前余额</span>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-accent-dim text-accent text-xs font-semibold">活跃</span>
+                    <span className="text-2xl font-bold text-accent">
+                      {user?.credits?.toLocaleString() ?? 0}
+                    </span>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-[13px] text-text-muted">积分余额</p>
-                    <p className="text-2xl font-bold text-accent">{user?.credits?.toLocaleString() ?? 0} / 2,000</p>
-                    <div className="h-2 rounded bg-base overflow-hidden">
-                      <div className="h-full rounded bg-accent" style={{ width: `${((user?.credits ?? 0) / 2000) * 100}%` }} />
-                    </div>
-                  </div>
+                  <p className="text-sm text-text-muted mb-4">
+                    积分可用于 AI 拆镜（10 积分/镜头）、图片生成（20 积分/张）等功能。
+                  </p>
+                  <button className="h-10 px-6 rounded-full border border-accent text-accent text-sm font-semibold hover:bg-accent-dim transition-colors">
+                    充值积分
+                  </button>
                 </div>
               </section>
 
@@ -140,30 +168,37 @@ export default function SettingsPage() {
               {/* Credit history section */}
               <section className="space-y-5">
                 <h3 className="text-xl font-bold text-text-primary">积分明细</h3>
-                <div className="space-y-0">
-                  {creditHistory.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between py-3 border-b border-border last:border-b-0"
-                    >
-                      <div>
-                        <p className="text-sm text-text-primary">{item.title}</p>
-                        <p className="text-xs text-text-muted">{item.time}</p>
-                      </div>
-                      <span
-                        className={`text-sm font-semibold ${
-                          item.amount > 0 ? "text-success" : "text-error"
-                        }`}
-                      >
-                        {item.amount > 0 ? "+" : ""}{item.amount.toLocaleString()}
-                      </span>
+                <div className="bg-surface rounded-2xl border border-border p-6">
+                  {loadingTransactions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 text-accent animate-spin" />
                     </div>
-                  ))}
+                  ) : transactions.length === 0 ? (
+                    <p className="text-sm text-text-muted text-center py-8">暂无记录</p>
+                  ) : (
+                    <div className="space-y-0">
+                      {transactions.map((tx) => (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between py-3 border-b border-border last:border-b-0"
+                        >
+                          <div>
+                            <p className="text-sm text-text-primary">{tx.description || getTypeLabel(tx.type)}</p>
+                            <p className="text-xs text-text-muted">{new Date(tx.createdAt).toLocaleString()}</p>
+                          </div>
+                          <span className={`text-sm font-semibold ${tx.amount > 0 ? "text-success" : "text-error"}`}>
+                            {tx.amount > 0 ? "+" : ""}{tx.amount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
-          </div>
-        </main>
+            </div>
+          </main>
+        </div>
         <RightPanel>
           <div className="p-4 space-y-4">
             <h3 className="text-sm font-semibold text-text-primary">设置帮助</h3>
@@ -174,7 +209,6 @@ export default function SettingsPage() {
           </div>
         </RightPanel>
       </div>
-    </div>
     </AuthGuard>
   );
 }

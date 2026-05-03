@@ -67,6 +67,7 @@ public sealed class WebDbContext : DbContext
         modelBuilder.Entity<Shot>(b =>
         {
             b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
             b.HasIndex(s => new { s.ProjectId, s.ShotNumber }).IsUnique();
             b.HasOne(s => s.Project)
                 .WithMany(p => p.Shots)
