@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ShotCard } from "@/components/workbench/shot-card";
 import { ShotEditor } from "@/components/workbench/shot-editor";
 import { ScriptInput } from "@/components/workbench/script-input";
 import { TaskQueue } from "@/components/workbench/task-queue";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { useShots } from "@/hooks/use-shots";
+import { useProjects } from "@/hooks/use-projects";
 import { GripVertical } from "lucide-react";
 import {
   DndContext,
@@ -27,17 +29,17 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowLeft, Plus, Trash2, FolderOpen, Image, Download,
-  ListTodo, Settings, CheckSquare, Square, Sparkles,
+  ListTodo, Settings, CheckSquare, Square, Sparkles, Loader2,
 } from "lucide-react";
-import { mockProjects, mockShots, mockJobs, type MockShot, type MockJob } from "@/lib/mock-data";
 import { ExportDialog } from "@/components/project/export-dialog";
 import { useAuth } from "@/lib/auth-context";
+import type { Shot } from "@/types/shot";
 
 const CREDIT_COST_FIRST_FRAME = 30;
 const CREDIT_COST_LAST_FRAME = 30;
 
 interface SortableShotCardProps {
-  shot: MockShot;
+  shot: Shot;
   selected: boolean;
   batchMode: boolean;
   selectedInBatch: boolean;
@@ -75,19 +77,52 @@ function SortableShotCard({ shot, selected, batchMode, selectedInBatch, onClick,
   );
 }
 
+interface MockJob {
+  id: string;
+  type: "text-storyboard" | "first-frame" | "last-frame" | "batch";
+  status: "queued" | "running" | "succeeded" | "failed";
+  shotId?: string;
+  shotNumber?: number;
+  creditsUsed: number;
+  createdAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
 export default function WorkbenchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { user, deductCredits } = useAuth();
-  const project = mockProjects.find((p) => p.id === id) ?? mockProjects[0];
+  const { projects } = useProjects();
+  const {
+    shots,
+    isLoading,
+    fetchShots,
+    createShot,
+    updateShot,
+    deleteShot,
+    duplicateShot,
+    reorderShots,
+  } = useShots();
 
-  const [shots, setShots] = useState<MockShot[]>(mockShots.filter((s) => s.projectId === "proj-001"));
-  const [selectedShot, setSelectedShot] = useState<string | null>(shots[0]?.id ?? null);
-  const [jobs, setJobs] = useState<MockJob[]>(mockJobs);
+  const [selectedShot, setSelectedShot] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<MockJob[]>([]);
   const [selectedShots, setSelectedShots] = useState<Set<string>>(new Set());
   const [batchMode, setBatchMode] = useState(false);
   const [activeNav, setActiveNav] = useState("shots");
   const [showExport, setShowExport] = useState(false);
+
+  const project = projects.find((p) => p.id === id);
+
+  useEffect(() => {
+    fetchShots(id);
+  }, [id, fetchShots]);
+
+  useEffect(() => {
+    if (shots.length > 0 && !selectedShot) {
+      setSelectedShot(shots[0].id);
+    }
+  }, [shots, selectedShot]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -96,16 +131,16 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
     })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = shots.findIndex((s) => s.id === active.id);
       const newIndex = shots.findIndex((s) => s.id === over.id);
-      const reordered = arrayMove(shots, oldIndex, newIndex).map((s, i) => ({
-        ...s,
-        shotNumber: i + 1,
-      }));
-      setShots(reordered);
+      const reordered = arrayMove(shots, oldIndex, newIndex);
+
+      // Optimistic update
+      const orderedIds = reordered.map((s) => s.id);
+      await reorderShots(id, orderedIds);
     }
   };
 
@@ -121,67 +156,42 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
 
   const currentShot = shots.find((s) => s.id === selectedShot) ?? null;
 
-  const handleShotChange = (updated: MockShot) => {
-    setShots(shots.map((s) => (s.id === updated.id ? updated : s)));
+  const handleShotChange = async (updated: Shot) => {
+    await updateShot(updated.id, {
+      shotType: updated.shotType,
+      duration: updated.duration,
+      coreContent: updated.coreContent,
+      firstFramePrompt: updated.firstFramePrompt,
+      lastFramePrompt: updated.lastFramePrompt,
+      videoPrompt: updated.videoPrompt,
+    });
   };
 
-  const handleDeleteShot = () => {
+  const handleDeleteShot = async () => {
     if (!selectedShot) return;
+    await deleteShot(selectedShot);
     const remaining = shots.filter((s) => s.id !== selectedShot);
-    setShots(remaining.map((s, i) => ({ ...s, shotNumber: i + 1 })));
     setSelectedShot(remaining[0]?.id ?? null);
   };
 
-  const handleDuplicateShot = () => {
+  const handleDuplicateShot = async () => {
     if (!currentShot) return;
-    const newShot: MockShot = {
-      ...currentShot,
-      id: `shot-${Date.now()}`,
-      shotNumber: shots.length + 1,
-      status: "draft",
-      firstFrameImagePath: undefined,
-      lastFrameImagePath: undefined,
-    };
-    setShots([...shots, newShot]);
-    setSelectedShot(newShot.id);
+    const result = await duplicateShot(currentShot.id);
+    if (result.success && result.shot) {
+      setSelectedShot(result.shot.id);
+    }
   };
 
-  const handleAddShot = () => {
-    const newShot: MockShot = {
-      id: `shot-${Date.now()}`,
-      projectId: id,
-      shotNumber: shots.length + 1,
-      duration: 3.0,
-      shotType: "中景",
-      coreContent: "",
-      actionCommand: "",
-      sceneSettings: "",
-      firstFramePrompt: "",
-      lastFramePrompt: "",
-      videoPrompt: "",
-      status: "draft",
-    };
-    setShots([...shots, newShot]);
-    setSelectedShot(newShot.id);
+  const handleAddShot = async () => {
+    const result = await createShot(id);
+    if (result.success && result.shot) {
+      setSelectedShot(result.shot.id);
+    }
   };
 
   const handleAIGenerate = (script: string, shotCount: number) => {
-    const newShots: MockShot[] = Array.from({ length: shotCount }, (_, i) => ({
-      id: `shot-ai-${Date.now()}-${i}`,
-      projectId: id,
-      shotNumber: i + 1,
-      duration: 3 + Math.random() * 4,
-      shotType: ["远景", "全景", "中景", "近景", "特写"][Math.floor(Math.random() * 5)],
-      coreContent: `AI 生成的镜头 ${i + 1}：${script.slice(0, 30)}...`,
-      actionCommand: "AI 自动生成的动作指令",
-      sceneSettings: "AI 自动生成的场景设定",
-      firstFramePrompt: `AI generated prompt for shot ${i + 1} first frame`,
-      lastFramePrompt: `AI generated prompt for shot ${i + 1} last frame`,
-      videoPrompt: `AI generated video prompt for shot ${i + 1}`,
-      status: "draft" as const,
-    }));
-    setShots(newShots);
-    setSelectedShot(newShots[0].id);
+    // TODO: Implement AI generation via backend
+    console.log("AI generate:", script, shotCount);
   };
 
   const toggleBatchSelect = (shotId: string) => {
@@ -201,6 +211,16 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
     { id: "assets", icon: Image, label: "素材库" },
     { id: "settings", icon: Settings, label: "项目设置" },
   ];
+
+  if (!project) {
+    return (
+      <AuthGuard>
+        <div className="h-screen flex items-center justify-center bg-base">
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
+        </div>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>
@@ -222,9 +242,9 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
         <div className="flex items-center gap-3">
           <TaskQueue
             jobs={jobs}
-            onRetry={(id) => setJobs(jobs.map((j) => j.id === id ? { ...j, status: "queued" as const } : j))}
-            onCancel={(id) => setJobs(jobs.filter((j) => j.id !== id))}
-            onRemove={(id) => setJobs(jobs.filter((j) => j.id !== id))}
+            onRetry={(jobId) => setJobs(jobs.map((j) => j.id === jobId ? { ...j, status: "running" as const } : j))}
+            onCancel={(jobId) => setJobs(jobs.filter((j) => j.id !== jobId))}
+            onRemove={(jobId) => setJobs(jobs.filter((j) => j.id !== jobId))}
           />
           <button
             onClick={() => setShowExport(true)}
@@ -241,8 +261,7 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
           <div className="p-4 border-b border-border">
             <h2 className="text-[15px] font-semibold text-text-primary truncate">{project.name}</h2>
             <div className="mt-2 space-y-1">
-              <p className="text-xs text-text-muted">画幅: {project.aspectRatio}</p>
-              <p className="text-xs text-text-muted">片长: 60 秒</p>
+              <p className="text-xs text-text-muted">画幅: {project.aspectRatio || "未设置"}</p>
               <p className="text-xs text-text-muted">镜头: {shots.length} 个</p>
             </div>
           </div>
@@ -310,22 +329,42 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-5 space-y-2.5">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={shots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-                {shots.map((shot) => (
-                  <SortableShotCard
-                    key={shot.id}
-                    shot={shot}
-                    selected={selectedShot === shot.id}
-                    batchMode={batchMode}
-                    selectedInBatch={selectedShots.has(shot.id)}
-                    onClick={() => setSelectedShot(shot.id)}
-                    onToggleBatch={() => toggleBatchSelect(shot.id)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+          <div className="flex-1 overflow-auto p-5">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-accent animate-spin" />
+              </div>
+            ) : shots.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <ListTodo className="w-12 h-12 text-text-muted mb-4" />
+                <p className="text-text-secondary mb-4">还没有镜头</p>
+                <button
+                  onClick={handleAddShot}
+                  className="flex items-center gap-2 h-11 px-5 rounded-full bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  添加第一个镜头
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={shots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                    {shots.map((shot) => (
+                      <SortableShotCard
+                        key={shot.id}
+                        shot={shot}
+                        selected={selectedShot === shot.id}
+                        batchMode={batchMode}
+                        selectedInBatch={selectedShots.has(shot.id)}
+                        onClick={() => setSelectedShot(shot.id)}
+                        onToggleBatch={() => toggleBatchSelect(shot.id)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </div>
+            )}
           </div>
         </main>
 

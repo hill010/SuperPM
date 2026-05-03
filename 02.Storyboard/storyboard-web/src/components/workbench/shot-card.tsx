@@ -1,10 +1,10 @@
 "use client";
 
 import { Clock, Film, Check, Loader2, AlertCircle, Image as ImageIcon } from "lucide-react";
-import type { MockShot } from "@/lib/mock-data";
+import type { Shot } from "@/types/shot";
 
 interface ShotCardProps {
-  shot: MockShot;
+  shot: Shot;
   selected: boolean;
   onClick: () => void;
 }
@@ -17,8 +17,15 @@ const statusConfig = {
   failed: { label: "失败", color: "text-error bg-error/10", icon: AlertCircle },
 };
 
+type ShotStatus = keyof typeof statusConfig;
+
+function getShotStatus(shot: Shot): ShotStatus {
+  if (shot.firstFrameImagePath || shot.lastFrameImagePath) return "generated";
+  return "draft";
+}
+
 export function ShotCard({ shot, selected, onClick }: ShotCardProps) {
-  const status = statusConfig[shot.status];
+  const status = statusConfig[getShotStatus(shot)];
   const StatusIcon = status.icon;
 
   return (
@@ -35,20 +42,20 @@ export function ShotCard({ shot, selected, onClick }: ShotCardProps) {
           <span className="text-xs font-mono font-semibold text-accent bg-accent-dim px-2 py-0.5 rounded-full">
             #{String(shot.shotNumber).padStart(2, "0")}
           </span>
-          <span className="text-xs text-text-muted">{shot.shotType}</span>
+          <span className="text-xs text-text-muted">{shot.shotType || "未设置"}</span>
           <span className="text-xs text-text-muted flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {shot.duration}s
           </span>
         </div>
         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
-          <StatusIcon className={`w-3 h-3 ${shot.status === "generating" ? "animate-spin" : ""}`} />
+          <StatusIcon className={`w-3 h-3 ${getShotStatus(shot) === "generating" ? "animate-spin" : ""}`} />
           {status.label}
         </div>
       </div>
 
       <p className="text-sm text-text-primary leading-relaxed mb-3 line-clamp-2">
-        {shot.coreContent}
+        {shot.coreContent || "未填写核心内容"}
       </p>
 
       <div className="flex gap-2">

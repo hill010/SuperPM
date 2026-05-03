@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronDown, ChevronUp, Sparkles, Copy, Trash2, Check, Loader2 } from "lucide-react";
-import type { MockShot } from "@/lib/mock-data";
+import type { Shot, UpdateShotRequest } from "@/types/shot";
 
 type SaveState = "idle" | "saving" | "saved";
 
 interface ShotEditorProps {
-  shot: MockShot | null;
-  onChange: (shot: MockShot) => void;
+  shot: Shot | null;
+  onChange: (shot: Shot) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onGenerateFirstFrame?: () => boolean;
@@ -59,15 +59,15 @@ function Field({ label, value, onChange, multiline = false, placeholder = "" }: 
 }
 
 export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFirstFrame, onGenerateLastFrame }: ShotEditorProps) {
-  const [local, setLocal] = useState<MockShot | null>(shot);
+  const [local, setLocal] = useState<Shot | null>(shot);
   const [model, setModel] = useState("Flux Pro");
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => { setLocal(shot); }, [shot]);
+  useEffect(() => { setLocal(shot); setSaveState("saved"); }, [shot]);
 
-  const debouncedSave = useCallback((updated: MockShot) => {
+  const debouncedSave = useCallback((updated: Shot) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setSaveState("saving");
     timeoutRef.current = setTimeout(() => {
@@ -84,8 +84,8 @@ export function ShotEditor({ shot, onChange, onDelete, onDuplicate, onGenerateFi
     );
   }
 
-  const update = (field: keyof MockShot, value: string | number) => {
-    const updated = { ...local!, [field]: value };
+  const update = (field: keyof Shot, value: string | number) => {
+    const updated = { ...local, [field]: value };
     setLocal(updated);
     debouncedSave(updated);
   };
