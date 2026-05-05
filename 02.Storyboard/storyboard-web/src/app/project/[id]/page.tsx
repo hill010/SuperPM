@@ -9,6 +9,7 @@ import { TaskQueue } from "@/components/workbench/task-queue";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { useShots } from "@/hooks/use-shots";
 import { useProjects } from "@/hooks/use-projects";
+import { useImageGeneration } from "@/hooks/use-image-generation";
 import { GripVertical } from "lucide-react";
 import {
   DndContext,
@@ -101,6 +102,7 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
     duplicateShot,
     reorderShots,
   } = useShots();
+  const { batchGenerate, loading: batchGenerating } = useImageGeneration();
 
   const [selectedShot, setSelectedShot] = useState<number | null>(null);
   const [jobs, setJobs] = useState<MockJob[]>([]);
@@ -177,6 +179,61 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
   const handleGenerateComplete = useCallback(() => {
     fetchShots(id);
   }, [id, fetchShots]);
+
+  const handleBatchGenerate = useCallback(async (generateType: "first" | "last" | "both") => {
+    if (selectedShots.size === 0) return;
+
+    const shotIds = Array.from(selectedShots);
+    const result = await batchGenerate(shotIds, generateType);
+
+    if (result) {
+      // Add jobs to the queue
+      const newJobs: MockJob[] = shotIds.flatMap((shotId) => {
+        const shot = shots.find((s) => s.id === shotId);
+        const jobs: MockJob[] = [];
+        if (generateType === "first" || generateType === "both") {
+          jobs.push({
+            id: `${Date.now()}-${shotId}-first`,
+            type: "first-frame",
+            status: "running",
+            shotId: String(shotId),
+            shotNumber: shot?.shotNumber,
+            creditsUsed: 20,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        if (generateType === "last" || generateType === "both") {
+          jobs.push({
+            id: `${Date.now()}-${shotId}-last`,
+            type: "last-frame",
+            status: "running",
+            shotId: String(shotId),
+            shotNumber: shot?.shotNumber,
+            creditsUsed: 20,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        return jobs;
+      });
+
+      setJobs((prev) => [...newJobs, ...prev]);
+
+      // Refresh shots after a delay
+      setTimeout(() => {
+        fetchShots(id);
+        // Update jobs status
+        setJobs((prev) =>
+          prev.map((j) =>
+            newJobs.some((nj) => nj.id === j.id) ? { ...j, status: "succeeded" as const } : j
+          )
+        );
+      }, 2000);
+
+      // Exit batch mode
+      setBatchMode(false);
+      setSelectedShots(new Set());
+    }
+  }, [selectedShots, shots, batchGenerate, fetchShots, id]);
 
   const toggleBatchSelect = (shotId: number) => {
     const next = new Set(selectedShots);
@@ -256,7 +313,13 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveNav(item.id)}
+                onClick={() => {
+                  if (item.id === "assets") {
+                    router.push(`/project/${id}/assets`);
+                  } else {
+                    setActiveNav(item.id);
+                  }
+                }}
                 className={`w-full flex items-center gap-3 px-3 h-10 rounded-xl text-xs font-medium transition-colors ${
                   activeNav === item.id
                     ? "bg-accent-dim text-accent"
@@ -282,9 +345,22 @@ export default function WorkbenchPage({ params }: { params: Promise<{ id: string
                     全选
                   </button>
                   {selectedShots.size > 0 && (
-                    <button className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-accent text-white text-xs font-medium">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      批量生成 ({selectedShots.size})
+                    <button
+                      onClick={() => handleBatchGenerate("both")}
+                      disabled={batchGenerating}
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-accent text-white text-xs font-medium disabled:opacity-50"
+                    >
+                      {batchGenerating ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          生成中...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          批量生成 ({selectedShots.size})
+                        </>
+                      )}
                     </button>
                   )}
                   <button onClick={() => { setBatchMode(false); setSelectedShots(new Set()); }} className="text-xs text-text-muted hover:text-text-secondary">

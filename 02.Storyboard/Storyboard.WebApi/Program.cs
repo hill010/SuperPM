@@ -26,8 +26,25 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IShotService, ShotService>();
 builder.Services.AddScoped<ICreditService, CreditService>();
 builder.Services.AddScoped<IStoryboardAIService, StoryboardAIService>();
-builder.Services.AddScoped<IImageGenerationService, MockImageGenerationService>();
+builder.Services.AddScoped<IImageGenerationService>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var provider = configuration["ImageGeneration:Provider"] ?? "Mock";
+
+    if (provider == "OpenAI" && !string.IsNullOrEmpty(configuration["OpenAI:ApiKey"]))
+    {
+        return new OpenAIImageGenerationService(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            configuration,
+            sp.GetRequiredService<ILogger<OpenAIImageGenerationService>>());
+    }
+
+    return new MockImageGenerationService();
+});
+
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddScoped<IJobNotificationService, JobNotificationService>();
 
 // Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-secret-key-change-in-production-min-32-chars!!";
